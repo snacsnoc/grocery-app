@@ -8,7 +8,10 @@
     <th>Name</th>
     <th>Image</th>
   </tr>
-  {% for store, data in result_data.items() %}
+  {% for store, results in result_data.items() %}
+          {% for data in results %}
+
+
     <tr>
       <td>{{ store }}</td>
       <td>{{ data['price'] }} </td>
@@ -17,6 +20,8 @@
       <td>{{ data['name'] }}</td>
       <td><img height=50px width=50px src="{{ data['image'] }}"> </td>
     </tr>
-  {{data}}
+ {% endfor %}
+
   {% endfor %}
 </table>
+
