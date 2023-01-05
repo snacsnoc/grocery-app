@@ -2,6 +2,7 @@
 class ProductDataParser:
     def parse_pc_json_data(data):
         product_data = data["results"]
+        result = []
         for product_code in product_data:
             product_info_map = {
                 "name": product_code["name"],
@@ -10,10 +11,12 @@ class ProductDataParser:
                 "unit": product_code["prices"]["price"]["unit"],
                 "image":product_code["imageAssets"][0]["mediumUrl"]
             }
-            return product_info_map
+            result.append(product_info_map)
+        return result
 
     def parse_safeway_json_data(data):
         product_data = data["entities"]["product"]
+        result = []
         for product_id, product_info in product_data.items():
             product_info_map = {
                 "name": product_info["name"],
@@ -21,16 +24,18 @@ class ProductDataParser:
                 "image": product_info["image"]['src'],
                 "unit": product_info["price"]["unit"]["label"]
             }
-            return product_info_map
-
+            result.append(product_info_map)
+        return result
     def parse_saveonfoods_json_data(data):
         product_data = data["products"]
+        result = []
         for product_code in product_data:
             product_info_map = {
                 "name": product_code["name"],
                 "price": product_code["priceNumeric"],
                 "quantity": product_code["unitOfSize"]["size"],
                 "unit": product_code["unitOfSize"]["type"],
-                "image":product_code["image"]["default"]
+                "image": product_code["image"]["default"]
             }
-            return product_info_map
+            result.append(product_info_map)
+        return result
