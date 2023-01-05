@@ -1,0 +1,22 @@
+<h2>Search results</h2>
+<table>
+  <tr>
+    <th>Store</th>
+    <th>Price</th>
+    <th>Unit</th>
+    <th>Quantity</th>
+    <th>Name</th>
+    <th>Image</th>
+  </tr>
+  {% for store, data in result_data.items() %}
+    <tr>
+      <td>{{ store }}</td>
+      <td>{{ data['price'] }} </td>
+      <td>{{ data['unit'] }} </td>
+      <td>{{ data['quantity'] }}</td>
+      <td>{{ data['name'] }}</td>
+      <td><img height=50px width=50px src="{{ data['image'] }}"> </td>
+    </tr>
+  {{data}}
+  {% endfor %}
+</table>
