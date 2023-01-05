@@ -45,12 +45,10 @@ class SupermarketAPI:
 
     def set_store_pc(self, store_number):
         self.store_number = store_number
-        pass
 
-    def query_pc(self):
+
+    def query_pc(self,pc_store_brand="superstore"):
         pc_api_url = "https://api.pcexpress.ca/product-facade/v3/products/search"
-
-        pc_store_brand = "superstore"
 
         pc_headers = {
             "Host": "api.pcexpress.ca",
