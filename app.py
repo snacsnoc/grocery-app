@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, url_for, flash, redirect
 import requests
 
 
-
 from product_data_parser import ProductDataParser
 from supermarket import SupermarketAPI
 
@@ -32,11 +31,17 @@ def search():
 
         longitude, latitude = lookup_postal_code(postal_code)
 
-        d = products_data.search_stores_pc(latitude,longitude)
-        pc_store_id = d['ResultList'][0]['Attributes'][0]['AttributeValue']
-        #pc_store_name = d['ResultList'][0]['Name']
-        products_data.set_store_pc(pc_store_id)
+        d = products_data.search_stores_pc(latitude, longitude)
+        pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+        print("Presidents Choice store name: ", d["ResultList"][0]["Name"])
 
+        e = products_data.search_stores_saveon(latitude, longitude)
+        saveon_store_id = e["items"][0]["retailerStoreId"]
+        print("SaveOn Store name: ", e["items"][0]["name"])
+
+        # Set default stores (closest store)
+        products_data.set_store_pc(pc_store_id)
+        products_data.set_store_saveon(saveon_store_id)
         a = products_data.query_pc()
 
         b = products_data.query_safeway()
@@ -50,18 +55,18 @@ def search():
         # print(gg)
         return render_template("search.html", result_data=search_data)
 
-#Look up postal code to lat,long coords
+
+# Look up postal code to lat,long coords
 def lookup_postal_code(postal_code):
     url = "https://geocoder.ca/?postal={postal_code}&geoit=XML".format(
         postal_code=postal_code
     )
     response = requests.get(url)
-    data = response.text
-    longitude = data.split("<longt>")[1].split("</longt>")[0]
-    latitude = data.split("<latt>")[1].split("</latt>")[0]
-    return longitude, latitude
-
-
+    if response.status_code == 200:
+        data = response.text
+        longitude = data.split("<longt>")[1].split("</longt>")[0]
+        latitude = data.split("<latt>")[1].split("</latt>")[0]
+        return longitude, latitude
 
 
 # Run the app
