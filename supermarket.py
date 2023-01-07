@@ -42,12 +42,10 @@ class SupermarketAPI:
         yaz = requests.get(bullseye_api_url)
         return yaz.json()
 
-
     def set_store_pc(self, store_number):
         self.store_number = store_number
 
-
-    def query_pc(self,pc_store_brand="superstore"):
+    def query_pc(self, pc_store_brand="superstore"):
         pc_api_url = "https://api.pcexpress.ca/product-facade/v3/products/search"
 
         pc_headers = {
@@ -78,6 +76,40 @@ class SupermarketAPI:
         # print("The status is: %s", r.status_code)
 
         return self.r.json()
+
+    # Search for Save-On-Food stores
+    def search_stores_saveon(self, latitude, longitude, radius=50):
+        saveonfoods_api_url = (
+            "https://storefrontgateway.saveonfoods.com/api/near/"
+            + str(latitude)
+            + "/"
+            + str(longitude)
+            + "/"
+            + str(radius)
+            + "/30/stores?shoppingModeId=11111111-1111-1111-1111-111111111111"
+        )
+        saveonfoods_headers = {
+            "X-Correlation-Id": "4b179d51-fa67-458e-b677-9460abe2ab45",
+            "X-Shopping-Mode": "11111111-1111-1111-1111-111111111111",
+            "X-Site-Host": "https://www.saveonfoods.com",
+            "X-Selected-Addressid": None,
+            "X-Customer-Address-Latitude": latitude,
+            "X-Customer-Address-Longitude": longitude,
+            "X-Site-Location": "HeadersBuilderInterceptor",
+            "Sec-Ch-Ua": "1",
+            "Client-Route-Id": "26186555-b0d7-4251-91e1-fca38fd364aa",
+            "Sec-Ch-Ua-Mobile": "1",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
+            "Sec-Ch-Ua-Platform": "1",
+            "Sec-Fetch-Site": "same-site",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Dest": "empty",
+            "Origin": "https://www.saveonfoods.com",
+            "Accept": "application/json; charset=utf-8",
+        }
+        store_list = requests.get(saveonfoods_api_url, headers=saveonfoods_headers)
+        if store_list.status_code == 200:
+            return store_list.json()
 
     def query_saveon(self):
         saveonfoods_api_url = "https://storefrontgateway.saveonfoods.com"
