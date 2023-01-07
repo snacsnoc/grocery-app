@@ -77,7 +77,7 @@ class SupermarketAPI:
 
         return self.r.json()
 
-    # Search for Save-On-Food stores
+    # Search for Save-On-Food stores given lat and long and return a JSON list
     def search_stores_saveon(self, latitude, longitude, radius=50):
         saveonfoods_api_url = (
             "https://storefrontgateway.saveonfoods.com/api/near/"
@@ -111,10 +111,16 @@ class SupermarketAPI:
         if store_list.status_code == 200:
             return store_list.json()
 
+    def set_store_saveon(self, store_number):
+        self.saveon_store_number = store_number
+
     def query_saveon(self):
         saveonfoods_api_url = "https://storefrontgateway.saveonfoods.com"
         saveonfoods_search_path = (
-            "/api/stores/1982/preview?popularTake=30&q=" + self.search_query
+            "/api/stores/"
+            + str(self.saveon_store_number)
+            + "/preview?popularTake=30&q="
+            + self.search_query
         )
 
         saveonfoods_headers = {
