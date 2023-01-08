@@ -198,6 +198,15 @@ class SupermarketAPI:
 
         return ra.json()
 
+    def search_stores_walmart(self, postal_code):
+        walmart_search_api_url = "https://www.walmart.ca"
+        walmart_search_api_search_path = (
+            "/en/stores-near-me/api/searchStores?singleLineAddr=" + postal_code
+        )
+
+        r = requests.get(walmart_search_api_url + walmart_search_api_search_path)
+        return r.json()
+
     def set_store_walmart(self, lat, long, postal_code):
         self.coords = str(lat) + "," + str(long)
         self.postal_code = postal_code
@@ -287,5 +296,5 @@ class SupermarketAPI:
             headers=walmart_headers,
             cookies=walmart_cookies,
         )
-        # print(walmart_request.text)
+
         return walmart_request.json()
