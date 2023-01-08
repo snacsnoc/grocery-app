@@ -1,33 +1,35 @@
+<title>Grocery search</title>
 <h2>Search results</h2>
 <p>
-  Store names: <ul>
- <li> {{ result_data['store_name']['pc']}}</li>
-  <li>{{ result_data['store_name']['saveon']}}</li>
+    Store names:
+<ul>
+    <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
+    <li>Save-On-Foods: {{ result_data['store_name']['saveon']}} </li>
+    <li>Safeway: {{ result_data['store_name']['safeway']}} </li>
+    <li>Walmart: {{ result_data['store_name']['walmart']}} </li>
 </ul>
 </p>
 <table>
-  <tr>
-    <th>Store</th>
-    <th>Price</th>
-    <th>Unit</th>
-    <th>Quantity</th>
-    <th>Name</th>
-    <th>Image</th>
-  </tr>
-  {% for store, results in result_data['results'].items() %}
-          {% for data in results %}
-
-
     <tr>
-      <td>{{ store }}</td>
-      <td>{{ data['price'] }} </td>
-      <td>{{ data['unit'] }} </td>
-      <td>{{ data['quantity'] }}</td>
-      <td>{{ data['name'] }}</td>
-      <td><img height=50px width=50px src="{{ data['image'] }}"> </td>
+        <th>Store</th>
+        <th>Price</th>
+        <th>Unit</th>
+        <th>Quantity</th>
+        <th>Name</th>
+        <th>Image</th>
     </tr>
- {% endfor %}
+    {% for store, results in result_data['results'].items() %}
+    {% for data in results %}
+    <tr>
+        <td>{{ store }}</td>
+        <td>{{ data['price'] }}</td>
+        <td>{{ data['unit'] }}</td>
+        <td>{{ data['quantity'] }}</td>
+        <td>{{ data['name'] }}</td>
+        <td><img height=50px width=50px src="{{ data['image'] }}"></td>
+    </tr>
+    {% endfor %}
 
-  {% endfor %}
+    {% endfor %}
 </table>
 
