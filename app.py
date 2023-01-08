@@ -24,7 +24,7 @@ def search():
         postal_code = request.form["postal_code"]
         print(query)
 
-        # Look up users postal code, convert to lat & long for Presidents choice
+        # Look up users postal code, convert to lat & long to search for user's local stores
         # Get each store's normalized data using ProductDataParser
         products_data = SupermarketAPI(query)
         parser = ProductDataParser
@@ -33,24 +33,29 @@ def search():
 
         d = products_data.search_stores_pc(latitude, longitude)
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
-        print("Presidents Choice store name: ", d["ResultList"][0]["Name"])
 
         e = products_data.search_stores_saveon(latitude, longitude)
         saveon_store_id = e["items"][0]["retailerStoreId"]
-        print("SaveOn Store name: ", e["items"][0]["name"])
 
         # Set default stores (closest store)
         products_data.set_store_pc(pc_store_id)
         products_data.set_store_saveon(saveon_store_id)
-        a = products_data.query_pc()
 
+        # Search stores for query
+        a = products_data.query_pc()
         b = products_data.query_safeway()
         c = products_data.query_saveon()
 
         search_data = {
-            "safeway": parser.parse_safeway_json_data(b),
-            "saveon": parser.parse_saveonfoods_json_data(c),
-            "pc": parser.parse_pc_json_data(a),
+            "store_name": {
+                "pc": d["ResultList"][0]["Name"],
+                "saveon": e["items"][0]["name"],
+            },
+            "results": {
+                "safeway": parser.parse_safeway_json_data(b),
+                "saveon": parser.parse_saveonfoods_json_data(c),
+                "pc": parser.parse_pc_json_data(a),
+            },
         }
         # print(gg)
         return render_template("search.html", result_data=search_data)
