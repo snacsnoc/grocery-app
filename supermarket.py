@@ -25,9 +25,25 @@ class SupermarketAPI:
     def __init__(self, search_query):
         self.search_query = search_query
 
-    def search_stores_pc(self, latitude, longitude, max_results=5, search_radius=20):
+    def search_stores_pc(
+        self,
+        latitude,
+        longitude,
+        max_results=5,
+        search_radius=20,
+        store_brand="superstore",
+    ):
+        # Set search category, see HACKING.md
+        if store_brand == "superstore":
+            category_id = "93204"
+        elif store_brand == "other":
+            category_id = "93252"
+
         bullseye_api_url = (
-            "https://ws2.bullseyelocations.com/RestSearch.svc/DoSearch2?ApiKey=9f2e82ec-18f3-407a-b91c-c6149342c389&CategoryIds=93204%2C93252&ClientId=4664&CountryId=2&FillAttr=True&FindNearestForNoResults=True&GetHoursForUpcomingWeek=True&Latitude="
+            "https://ws2.bullseyelocations.com/RestSearch.svc/DoSearch2?ApiKey=9f2e82ec-18f3-407a-b91c-c6149342c389"
+            + "&CategoryIds="
+            + category_id
+            + "&ClientId=4664&CountryId=2&FillAttr=True&FindNearestForNoResults=True&GetHoursForUpcomingWeek=True&Latitude="
             + str(latitude)
             + "&Longitude="
             + str(longitude)
@@ -40,6 +56,7 @@ class SupermarketAPI:
         bullseye_headers = {}
 
         yaz = requests.get(bullseye_api_url)
+
         return yaz.json()
 
     def set_store_pc(self, store_number):
