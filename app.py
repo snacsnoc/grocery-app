@@ -31,7 +31,9 @@ def search():
 
         longitude, latitude = lookup_postal_code(postal_code)
 
-        d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+        d = products_data.search_stores_pc(
+            latitude, longitude, store_brand="superstore"
+        )
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
 
         e = products_data.search_stores_saveon(latitude, longitude)
@@ -40,24 +42,28 @@ def search():
         # Set default stores (closest store)
         products_data.set_store_pc(pc_store_id)
         products_data.set_store_saveon(saveon_store_id)
-
+        products_data.set_store_walmart(latitude, longitude, postal_code)
         # Search stores for query
         a = products_data.query_pc()
         b = products_data.query_safeway()
         c = products_data.query_saveon()
+        f = products_data.query_walmart()
 
         search_data = {
             "store_name": {
                 "pc": d["ResultList"][0]["Name"],
                 "saveon": e["items"][0]["name"],
+                "safeway": "safewaySTORENAME",
+                "walmart": postal_code,
             },
             "results": {
                 "safeway": parser.parse_safeway_json_data(b),
                 "saveon": parser.parse_saveonfoods_json_data(c),
                 "pc": parser.parse_pc_json_data(a),
+                "walmart": parser.parse_walmart_json_data(f),
             },
         }
-        # print(gg)
+
         return render_template("search.html", result_data=search_data)
 
 
