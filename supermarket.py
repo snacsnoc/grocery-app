@@ -24,6 +24,7 @@ import requests
 class SupermarketAPI:
     def __init__(self, search_query):
         self.search_query = search_query
+        self.walmart_api_url = "https://www.walmart.ca"
 
     def search_stores_pc(
         self,
@@ -33,7 +34,7 @@ class SupermarketAPI:
         search_radius=20,
         store_brand="superstore",
     ):
-
+        category_id = ""
         # Set search category, see HACKING.md
         if store_brand == "superstore":
             category_id = "93204"
@@ -199,12 +200,12 @@ class SupermarketAPI:
         return ra.json()
 
     def search_stores_walmart(self, postal_code):
-        walmart_search_api_url = "https://www.walmart.ca"
+
         walmart_search_api_search_path = (
             "/en/stores-near-me/api/searchStores?singleLineAddr=" + postal_code
         )
 
-        r = requests.get(walmart_search_api_url + walmart_search_api_search_path)
+        r = requests.get(self.walmart_api_url + walmart_search_api_search_path)
         return r.json()
 
     def set_store_walmart(self, lat, long, postal_code):
@@ -212,7 +213,7 @@ class SupermarketAPI:
         self.postal_code = postal_code
 
     def query_walmart(self):
-        walmart_api_url = "https://www.walmart.ca"
+
         walmart_api_search_path = (
             "/orchestra/snb/graphql/search?query="
             + self.search_query
@@ -291,7 +292,7 @@ class SupermarketAPI:
             },
         }
         walmart_request = requests.post(
-            walmart_api_url + walmart_api_search_path,
+            self.walmart_api_url + walmart_api_search_path,
             json=walmart_data_body,
             headers=walmart_headers,
             cookies=walmart_cookies,

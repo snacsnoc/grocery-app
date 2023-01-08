@@ -11,6 +11,113 @@
     <li>Walmart: {{ result_data['store_name']['walmart']}} </li>
 </ul>
 
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th><button id="Store">Store</button></th>
+        <th><button id="Price">Price</button></th>
+        <th><button id="Unit">Unit</button></th>
+        <th><button id="Quantity">Quantity</button></th>
+        <th><button id="Name">Name</button></th>
+        <th><button id="Image">Image</button></th>
+      </tr>
+    </thead>
+    <tbody id="table-content"></tbody>
+  </table>
+</div>
+
+<style>
+    @import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap");
+
+body {
+  font-family: "Lato", sans-serif;
+}
+
+.table-container {
+  margin: auto;
+  max-width: 1200px;
+  min-height: 100vh;
+  overflow: scroll;
+  width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+thead tr {
+  border-bottom: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+  height: 1px;
+}
+
+th {
+  font-weight: bold;
+  height: inherit;
+  padding: 0;
+}
+
+th:not(:first-of-type) {
+  border-left: 1px solid #ddd;
+}
+
+th button {
+  background-color: #eee;
+  border: none;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  height: 100%;
+  margin: 0;
+  min-width: max-content;
+  padding: 0.5rem 1rem;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+th button::after {
+  position: absolute;
+  right: 0.5rem;
+}
+
+th button[data-dir="asc"]::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='0, 0 8,0 4,8 8' fill='%23818688'/%3E%3C/svg%3E");
+}
+
+th button[data-dir="desc"]::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='4 0,8 8,0 8' fill='%23818688'/%3E%3C/svg%3E");
+}
+
+tbody tr {
+  border-bottom: 1px solid #ddd;
+}
+
+td {
+  padding: 0.5rem 1rem;
+  text-align: left;
+}
+
+footer {
+  background-color: #ffdfb9;
+  margin: 2rem -8px -8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+footer .heart {
+  color: #dc143c;
+}
+
+</style>
+<!--
 <table>
     <tr>
         <th>Store</th>
@@ -34,4 +141,96 @@
 
     {% endfor %}
 </table>
+-->
+<script type="application/javascript">
+    const response = {
+   "search_results": [
+       {% for store, results in result_data['results'].items() %}
+    {% for data in results %}
+    {"Store":"{{ store }}",
+    "Price":"{{ data['price'] }}",
+    "Unit": "{{ data['unit'] }}",
+    "Quantity": "{{ data['quantity'] }}",
+    "Name":"{{ data['name'] }}",
+    "Image":"<img height=50px width=50px src={{ data['image'] }}>"
+    },
+    {% endfor %}
+    {% endfor %}
+   ]
+}
+
+const tableContent = document.getElementById("table-content")
+const tableButtons = document.querySelectorAll("th button");
+
+const createRow = (obj) => {
+  const row = document.createElement("tr");
+  const objKeys = Object.keys(obj);
+  objKeys.map((key) => {
+    const cell = document.createElement("td");
+    cell.setAttribute("data-attr", key);
+    cell.innerHTML = obj[key];
+    row.appendChild(cell);
+  });
+  return row;
+};
+
+const getTableContent = (data) => {
+  data.map((obj) => {
+    const row = createRow(obj);
+    tableContent.appendChild(row);
+  });
+};
+
+const sortData = (data, param, direction = "asc") => {
+  tableContent.innerHTML = '';
+  const sortedData =
+    direction == "asc"
+      ? [...data].sort(function (a, b) {
+          if (a[param] < b[param]) {
+            return -1;
+          }
+          if (a[param] > b[param]) {
+            return 1;
+          }
+          return 0;
+        })
+      : [...data].sort(function (a, b) {
+          if (b[param] < a[param]) {
+            return -1;
+          }
+          if (b[param] > a[param]) {
+            return 1;
+          }
+          return 0;
+        });
+
+  getTableContent(sortedData);
+};
+
+const resetButtons = (event) => {
+  [...tableButtons].map((button) => {
+    if (button !== event.target) {
+      button.removeAttribute("data-dir");
+    }
+  });
+};
+
+window.addEventListener("load", () => {
+  getTableContent(response.search_results);
+
+  [...tableButtons].map((button) => {
+    button.addEventListener("click", (e) => {
+      resetButtons(e);
+      if (e.target.getAttribute("data-dir") == "desc") {
+        sortData(response.search_results, e.target.id, "desc");
+        e.target.setAttribute("data-dir", "asc");
+      } else {
+        sortData(response.search_results, e.target.id, "asc");
+        e.target.setAttribute("data-dir", "desc");
+      }
+    });
+  });
+});
+
+</script>
 
