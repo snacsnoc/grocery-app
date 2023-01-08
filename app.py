@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, url_for, flash, redirect
+from flask import Flask, render_template, request
 
 import requests
 import os
@@ -50,6 +50,8 @@ def search():
         e = products_data.search_stores_saveon(latitude, longitude)
         saveon_store_id = e["items"][0]["retailerStoreId"]
 
+        walmart_store = products_data.search_stores_walmart(postal_code)
+
         # Set default stores (closest store)
         products_data.set_store_pc(pc_store_id)
         products_data.set_store_saveon(saveon_store_id)
@@ -61,20 +63,26 @@ def search():
         c = products_data.query_saveon()
         f = products_data.query_walmart()
 
-        search_data = {
-            "store_name": {
-                "pc": d["ResultList"][0]["Name"],
-                "saveon": e["items"][0]["name"],
-                "safeway": "safewaySTORENAME",
-                "walmart": postal_code,
-            },
-            "results": {
-                "safeway": parser.parse_safeway_json_data(b),
-                "saveon": parser.parse_saveonfoods_json_data(c),
-                "pc": parser.parse_pc_json_data(a),
-                "walmart": parser.parse_walmart_json_data(f),
-            },
-        }
+        if all([a, b, c, f]):
+
+            search_data = {
+                "store_name": {
+                    "pc": d["ResultList"][0]["Name"],
+                    "saveon": e["items"][0]["name"],
+                    "safeway": "safewaySTORENAME",
+                    "walmart": str(walmart_store["payload"]["stores"][0]["id"])
+                    + " - "
+                    + walmart_store["payload"]["stores"][0]["displayName"],
+                },
+                "results": {
+                    "safeway": parser.parse_safeway_json_data(b),
+                    "saveon": parser.parse_saveonfoods_json_data(c),
+                    "pc": parser.parse_pc_json_data(a),
+                    "walmart": parser.parse_walmart_json_data(f),
+                },
+            }
+        else:
+            search_data = {"error": "No results"}
 
         return render_template("search.html", result_data=search_data)
 
