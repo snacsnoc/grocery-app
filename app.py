@@ -31,7 +31,7 @@ def search():
 
         longitude, latitude = lookup_postal_code(postal_code)
 
-        d = products_data.search_stores_pc(latitude, longitude)
+        d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
 
         e = products_data.search_stores_saveon(latitude, longitude)
