@@ -1,4 +1,10 @@
 <h2>Search results</h2>
+<p>
+  Store names: <ul>
+ <li> {{ result_data['store_name']['pc']}}</li>
+  <li>{{ result_data['store_name']['saveon']}}</li>
+</ul>
+</p>
 <table>
   <tr>
     <th>Store</th>
@@ -8,7 +14,7 @@
     <th>Name</th>
     <th>Image</th>
   </tr>
-  {% for store, results in result_data.items() %}
+  {% for store, results in result_data['results'].items() %}
           {% for data in results %}
 
 
