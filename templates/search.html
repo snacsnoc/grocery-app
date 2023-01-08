@@ -1,14 +1,16 @@
 <title>Grocery search</title>
 <h2>Search results</h2>
+{{ error }}
 <p>
     Store names:
+</p>
 <ul>
     <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
     <li>Save-On-Foods: {{ result_data['store_name']['saveon']}} </li>
     <li>Safeway: {{ result_data['store_name']['safeway']}} </li>
     <li>Walmart: {{ result_data['store_name']['walmart']}} </li>
 </ul>
-</p>
+
 <table>
     <tr>
         <th>Store</th>
