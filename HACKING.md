@@ -53,11 +53,21 @@ Result:
 ```
 
 # Walmart
-Walmart has a REST API for web just the previous grocers and not much surprise here.
+Walmart has a REST API for web just like the previous grocers and not much surprise here.
 Unfortunately the devs at Walmart are smart enough to add anti-bot measures to reduce automated requests (aka this project...)
 
 
 Endpoint: `walmart.ca/api`
+
+Searching for stores given a postal code or address is done like so:
+```commandline
+curl -i -s -k -X $'GET' \
+    -H $'Host: www.walmart.ca' -H $'Sec-Ch-Ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\"' -H $'Sec-Ch-Ua-Mobile: ?0' -H $'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36' -H $'Sec-Ch-Ua-Platform: \"macOS\"' -H $'Accept: */*' -H $'Sec-Fetch-Site: same-origin' -H $'Sec-Fetch-Mode: cors' -H $'Sec-Fetch-Dest: empty' -H $'Referer: https://www.walmart.ca/en/stores-near-me' -H $'Accept-Encoding: gzip, deflate' -H $'Accept-Language: en-US,en;q=0.9' \
+    -b $'Sec-Ch-Ua: \" Not A;Brand\";v=\"99\", \"Chromium\"; v=\"96\"' \
+    $'https://www.walmart.ca/en/stores-near-me/api/searchStores?singleLineAddr=t3b1h4'
+```
+
+Result: https://gist.github.com/snacsnoc/ea71174078ed983122847a1e9389903c
 
 Jumping into the mobile app, we can see that they are actually sending a GraphQL request. This allows searching to be much more powerful.
 
