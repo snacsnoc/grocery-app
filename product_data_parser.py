@@ -4,12 +4,16 @@ class ProductDataParser:
         product_data = data["results"]
         result = []
         for product_code in product_data:
+            image = product_code.get(
+                "imageAssets.0.smallRetinaUrl",
+                "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png",
+            )
             product_info_map = {
                 "name": product_code["name"],
                 "price": product_code["prices"]["price"]["value"],
                 "quantity": product_code["prices"]["price"]["quantity"],
                 "unit": product_code["prices"]["price"]["unit"],
-                "image": product_code["imageAssets"][0]["smallRetinaUrl"],
+                "image": image,
             }
             result.append(product_info_map)
         return result
@@ -49,8 +53,8 @@ class ProductDataParser:
         result = []
         for product_code in product_data:
 
-            quantity = product_code.get("priceInfo.unitPrice.priceString", "no")
-            price = product_code.get("priceInfo.currentPrice.price", "no")
+            quantity = product_code.get("priceInfo.unitPrice.priceString", "NA")
+            price = product_code.get("priceInfo.currentPrice.price", "NA")
 
             image = product_code.get(
                 "imageInfo.allImages",
@@ -59,7 +63,7 @@ class ProductDataParser:
 
             product_info_map = {
                 "name": product_code["name"],
-                "price": price,
+                "price": str(price),
                 "quantity": quantity,
                 "unit": product_code["salesUnitType"],
                 "image": image,
