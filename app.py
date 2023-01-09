@@ -63,15 +63,15 @@ def search():
 
     d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
 
-    #Set stores by user form selection
-    if request.form["pc-store-select"]:
+    # Set stores by user form selection
+    if "pc-store-select" in request.form:
         pc_store_id = request.form["pc-store-select"]
     else:
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
 
     e = products_data.search_stores_saveon(latitude, longitude)
 
-    if request.form["saveon-store-select"]:
+    if "saveon-store-select" in request.form:
         saveon_store_id = request.form["saveon-store-select"]
     else:
         saveon_store_id = e["items"][0]["retailerStoreId"]
