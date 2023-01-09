@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-
+import concurrent.futures
 import requests
 import os
 
@@ -8,7 +8,7 @@ from supermarket import SupermarketAPI
 
 # Create the Flask application
 app = Flask(__name__)
-DEBUG = True
+DEBUG = False
 GEOCODER_API_KEY = os.getenv("GEOCODER_API_KEY")
 
 # Define the route for the index page
@@ -57,12 +57,34 @@ def search():
         products_data.set_store_saveon(saveon_store_id)
         products_data.set_store_walmart(latitude, longitude, postal_code)
 
-        # Search stores for query
-        a = products_data.query_pc()
-        b = products_data.query_safeway()
-        c = products_data.query_saveon()
-        f = products_data.query_walmart()
+        # Set up a list of functions to send requests to
+        functions = [products_data.query_saveon, products_data.query_pc, products_data.query_safeway, products_data.query_walmart]
 
+        # Use a ThreadPoolExecutor to send the requests in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Start the load operations and mark each future with its function
+            future_to_function = {executor.submit(func): func for func in functions}
+            results = {}
+            for future in concurrent.futures.as_completed(future_to_function):
+                func = future_to_function[future]
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    print(f'Function {func.__name__} generated an exception: {exc}')
+                    results[func.__name__] = exc
+                else:
+                    print(f'Function {func.__name__} returned result: {result}')
+                    results[func.__name__] = result
+
+
+        a = results['query_pc']
+        c = results['query_saveon']
+        b = results['query_safeway']
+        f = results['query_walmart']
+
+
+        # Check if we have results for all stores
+        # TODO: rewrite this
         if all([a, b, c, f]):
 
             search_data = {
