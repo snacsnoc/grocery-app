@@ -14,6 +14,12 @@ DEBUG = os.getenv("DEBUG_MODE")
 GEOCODER_API_KEY = os.getenv("GEOCODER_API_KEY")
 OPENCAGE_API_KEY = os.getenv("OPENCAGE_API_KEY")
 
+cache_dir = "cache"
+
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
+
 # Define the route for the index page
 @app.route("/")
 def index():
