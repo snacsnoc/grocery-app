@@ -4,10 +4,13 @@ class ProductDataParser:
         product_data = data["results"]
         result = []
         for product_code in product_data:
-            image = product_code.get(
-                "imageAssets.0.smallRetinaUrl",
-                "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png",
-            )
+            if product_code["imageAssets"] != None:
+                image = product_code["imageAssets"][0]["smallRetinaUrl"]
+            else:
+                image = (
+                    "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
+                )
+
             product_info_map = {
                 "name": product_code["name"],
                 "price": product_code["prices"]["price"]["value"],
@@ -52,18 +55,25 @@ class ProductDataParser:
         ]
         result = []
         for product_code in product_data:
+            if product_code["priceInfo"]["unitPrice"] != None:
+                quantity = product_code["priceInfo"]["unitPrice"]["priceString"]
+            else:
+                quantity = "NA"
 
-            quantity = product_code.get("priceInfo.unitPrice.priceString", "NA")
-            price = product_code.get("priceInfo.currentPrice.price", "NA")
-
-            image = product_code.get(
-                "imageInfo.allImages",
-                "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png",
-            )
+            if product_code["priceInfo"]["currentPrice"] != None:
+                price = product_code["priceInfo"]["currentPrice"]["price"]
+            else:
+                price = "NA"
+            if product_code["imageInfo"]["allImages"][0]["url"] != None:
+                image = product_code["imageInfo"]["allImages"][0]["url"]
+            else:
+                image = (
+                    "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
+                )
 
             product_info_map = {
                 "name": product_code["name"],
-                "price": str(price),
+                "price": price,
                 "quantity": quantity,
                 "unit": product_code["salesUnitType"],
                 "image": image,
