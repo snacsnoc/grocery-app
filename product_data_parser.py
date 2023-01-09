@@ -9,7 +9,7 @@ class ProductDataParser:
                 "price": product_code["prices"]["price"]["value"],
                 "quantity": product_code["prices"]["price"]["quantity"],
                 "unit": product_code["prices"]["price"]["unit"],
-                "image": product_code["imageAssets"][0]["mediumUrl"],
+                "image": product_code["imageAssets"][0]["smallRetinaUrl"],
             }
             result.append(product_info_map)
         return result
