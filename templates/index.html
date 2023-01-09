@@ -26,7 +26,7 @@
     </form>
 </div>
 <p>The closest stores to the supplied postal code are used. You can select different stores after searching</p>
-<footer><a href="https://github.com/snacsnoc/grocery-app">github</a></footer>
-{% if result_data['debug_mode'] == "TRUE" %}
+<footer><a href="https://github.com/snacsnoc/grocery-app">github</a>{% if result_data['debug_mode'] == "TRUE" %}
 {{ result_data['debug_mode'] }}
 {% endif %}
+</footer>
