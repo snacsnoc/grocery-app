@@ -30,7 +30,7 @@ def index():
 
 @app.route("/search", methods=("GET", "POST"))
 def search():
-    print(request)
+    print(request.form)
     if "query" not in request.form or "postal_code" not in request.form:
         raise ValueError("Missing query or postal_code in request.form")
 
@@ -62,10 +62,20 @@ def search():
         raise Exception("No geo coords!")
 
     d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+
+    #Set stores by user form selection
+    if request.form["pc-store-select"]:
+        pc_store_id = request.form["pc-store-select"]
+    else:
+        pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+
     e = products_data.search_stores_saveon(latitude, longitude)
 
-    pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
-    saveon_store_id = e["items"][0]["retailerStoreId"]
+    if request.form["saveon-store-select"]:
+        saveon_store_id = request.form["saveon-store-select"]
+    else:
+        saveon_store_id = e["items"][0]["retailerStoreId"]
+
     walmart_store = products_data.search_stores_walmart(postal_code)
 
     # Set default stores (closest store)
@@ -112,6 +122,7 @@ def search():
         }
     else:
         search_data = {
+            "query": query,
             "store_name": {
                 "pc": d["ResultList"][0]["Name"],
                 "saveon": e["items"][0]["name"],
