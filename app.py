@@ -10,7 +10,7 @@ from supermarket import SupermarketAPI
 app = Flask(__name__)
 DEBUG = os.getenv("DEBUG_MODE")
 GEOCODER_API_KEY = os.getenv("GEOCODER_API_KEY")
-
+OPENCAGE_API_KEY = os.getenv("OPENCAGE_API_KEY")
 
 # Define the route for the index page
 @app.route("/")
@@ -39,8 +39,8 @@ def search():
             longitude = "-115.69"
             latitude = "49.420"
         else:
-            longitude, latitude = lookup_postal_code(postal_code)
-        print(latitude)
+            longitude, latitude = lookup_postal_code_oc(postal_code)
+
         if latitude is None:
             raise Exception("No geo coords!")
 
@@ -136,6 +136,28 @@ def lookup_postal_code(postal_code):
         longitude = data.split("<longt>")[1].split("</longt>")[0]
         latitude = data.split("<latt>")[1].split("</latt>")[0]
         return longitude, latitude
+
+
+def lookup_postal_code_oc(postal_code):
+    """Look up the latitude and longitude for a Canadian postal code.
+
+    Args:
+        postal_code (str): A Canadian postal code.
+
+    Returns:
+        A tuple containing the latitude and longitude for the postal code, in that order.
+    """
+    # Use the OpenCage Geocoder API to look up the latitude and longitude
+    api_key = OPENCAGE_API_KEY
+    api_url = f'https://api.opencagedata.com/geocode/v1/json?q={postal_code}&key={api_key}'
+    response = requests.get(api_url)
+    data = response.json()
+
+    # Extract the latitude and longitude from the API response
+    latitude = data['results'][0]['geometry']['lat']
+    longitude = data['results'][0]['geometry']['lng']
+
+    return longitude, latitude
 
 
 # Run the app
