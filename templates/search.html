@@ -237,7 +237,7 @@ window.addEventListener("load", () => {
 <h4>Change stores</h4>
 <form>
     <div class="form-group">
-        <label for="store-select">Select a Walmart store:</label>
+        <label for="store1">Select a Walmart store:</label>
         <select class="form-control" id="walmart-store-select" name="walmart-store-select">
             {% for store_name in result_data['store_locations']['walmart'] %}
                 <option value="{{store_name['id']}}">
@@ -254,6 +254,18 @@ window.addEventListener("load", () => {
             {% for store_name in result_data['store_locations']['pc'] %}
                 <option value="{{store_name['Attributes'][0]['AttributeValue']}}">
                     {{ store_name['Name'] }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="store3">
+            Select a Save-On-Foods store:
+        </label>
+        <select class="form-control" id="saveon-store-select" name="saveon-store-select">
+            {% for store_name in result_data['store_locations']['saveon'] %}
+                <option value="{{store_name['retailerStoreId']}}">
+                    {{ store_name['name'] }} - {{ store_name['addressLine1'] }}
                 </option>
             {% endfor %}
         </select>
