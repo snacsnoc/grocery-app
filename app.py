@@ -8,14 +8,17 @@ from supermarket import SupermarketAPI
 
 # Create the Flask application
 app = Flask(__name__)
-DEBUG = False
+DEBUG = os.getenv("DEBUG_MODE")
 GEOCODER_API_KEY = os.getenv("GEOCODER_API_KEY")
 
 # Define the route for the index page
 @app.route("/")
 def index():
+    page_data = {
+        "debug_mode": DEBUG
+    }
     # Render the index.html template in the /templates directory
-    return render_template("index.html")
+    return render_template("index.html",result_data=page_data)
 
 
 @app.route("/search", methods=("GET", "POST"))
