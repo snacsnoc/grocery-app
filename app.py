@@ -3,6 +3,8 @@ import concurrent.futures
 import requests
 import os
 
+import pickle
+
 from product_data_parser import ProductDataParser
 from supermarket import SupermarketAPI
 
@@ -148,6 +150,16 @@ def lookup_postal_code_oc(postal_code):
     Returns:
         A tuple containing the latitude and longitude for the postal code, in that order.
     """
+    # Check if the results are already in the cache
+    cache_filename = f'cache/postal_code_{postal_code}.pkl'
+    try:
+        with open(cache_filename, 'rb') as f:
+            print("Postal code cache hit")
+            return pickle.load(f)
+    except FileNotFoundError:
+        print("Postal code cache miss")
+        pass
+
     # Use the OpenCage Geocoder API to look up the latitude and longitude
     api_key = OPENCAGE_API_KEY
     api_url = (
@@ -160,6 +172,10 @@ def lookup_postal_code_oc(postal_code):
     latitude = data["results"][0]["geometry"]["lat"]
     longitude = data["results"][0]["geometry"]["lng"]
     formatted_address = data["results"][0]["formatted"]
+
+    # Save the results to the cache
+    with open(cache_filename, 'wb') as f:
+        pickle.dump((longitude, latitude, formatted_address), f)
 
     return longitude, latitude, formatted_address
 
