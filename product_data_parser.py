@@ -49,22 +49,20 @@ class ProductDataParser:
         result = []
         for product_code in product_data:
 
-            if product_code["priceInfo"]["unitPrice"] != None:
-                quantity = product_code["priceInfo"]["unitPrice"]["priceString"]
-            else:
-                quantity = "no"
+            quantity = product_code.get("priceInfo.unitPrice.priceString", "no")
+            price = product_code.get("priceInfo.currentPrice.price", "no")
 
-            if product_code["priceInfo"]["currentPrice"] != None:
-                price = product_code["priceInfo"]["currentPrice"]["price"]
-            else:
-                price = "no"
+            image = product_code.get(
+                "imageInfo.allImages",
+                "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png",
+            )
 
             product_info_map = {
                 "name": product_code["name"],
                 "price": price,
                 "quantity": quantity,
                 "unit": product_code["salesUnitType"],
-                "image": product_code["imageInfo"]["allImages"][0]["url"],
+                "image": image,
             }
             result.append(product_info_map)
         return result
