@@ -74,18 +74,25 @@ def search():
 
     e = products_data.search_stores_saveon(latitude, longitude)
 
-    if "saveon-store-select" in request.form:
-        saveon_store_id = request.form["saveon-store-select"]
-        saveon_store_name = saveon_store_id
+    # Check if we have Save-On stores near us
+    if not e["items"]:
+        saveon_store_name = False
+        saveon_store_id = False
     else:
-        saveon_store_id = e["items"][0]["retailerStoreId"]
-        saveon_store_name = e["items"][0]["name"]
+        if "saveon-store-select" in request.form:
+            saveon_store_id = request.form["saveon-store-select"]
+            saveon_store_name = saveon_store_id
+        else:
+            saveon_store_id = e["items"][0]["retailerStoreId"]
+            saveon_store_name = e["items"][0]["name"]
+
+    products_data.set_store_saveon(saveon_store_id)
 
     walmart_store = products_data.search_stores_walmart(postal_code)
 
     # Set default stores (closest store)
     products_data.set_store_pc(pc_store_id)
-    products_data.set_store_saveon(saveon_store_id)
+
     products_data.set_store_walmart(latitude, longitude, postal_code)
 
     # Set up a list of functions to send requests to
@@ -114,6 +121,12 @@ def search():
 
     a = results["query_pc"]
     c = results["query_saveon"]
+
+    if results["query_saveon"]["status"] == 404:
+        parsed_saveon_data = "no results"
+    else:
+        parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
+
     b = results["query_safeway"]
     f = results["query_walmart"]
 
@@ -138,7 +151,7 @@ def search():
             },
             "results": {
                 "safeway": parser.parse_safeway_json_data(b),
-                "saveon": parser.parse_saveonfoods_json_data(c),
+                "saveon": parsed_saveon_data,
                 "pc": parser.parse_pc_json_data(a),
                 "walmart": parser.parse_walmart_json_data(f),
             },
