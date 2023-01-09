@@ -234,5 +234,32 @@ window.addEventListener("load", () => {
 });
 
 </script>
-
-<footer><small>{{ result_data['coords'] }} </small></footer>
+<h4>Change stores</h4>
+<form>
+    <div class="form-group">
+        <label for="store-select">Select a Walmart store:</label>
+        <select class="form-control" id="walmart-store-select" name="walmart-store-select">
+            {% for store_name in result_data['store_locations']['walmart'] %}
+                <option value="{{store_name['id']}}">
+                    {{ store_name['displayName'] }} - {{ store_name['address1'] }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="store2">
+            Select a Superstore/Independant/Shoppers Drug Mart/Loblaws store:
+        </label>
+        <select class="form-control" id="pc-store-select" name="pc-store-select">
+            {% for store_name in result_data['store_locations']['pc'] %}
+                <option value="{{store_name['Attributes'][0]['AttributeValue']}}">
+                    {{ store_name['Name'] }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-default">Submit</button>
+</form>
+<footer>
+    <small>{{ result_data['coords'] }} </small>
+</footer>

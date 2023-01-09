@@ -14,28 +14,19 @@
 <p>Search Walmart.ca, Save-On-Foods, Safeway and Real Canadian Superstore/President's Choice with one search</p>
 
 
-<nav class="navbar navbar-default" role="navigation">
-    <div class="container">
-        <ul class="nav navbar-nav navbar-left"></ul>
-        <form class="navbar-form " name="search" id="search-form" action="/search" method="post">
-            <div class="form-group" style="display: inline;">
-                <div class="input-group">
-                    <input placeholder="Postal code" class="form-control" id="postal_code"
-                           name="postal_code">
-                    <input class="form-control" type="text" id="search" name="query"
-                           placeholder="Eggs, milk, bread...">
-                    <span class="input-group-addon">
-                        	<button type="submit" class="btn btn-link">
-    <span class="glyphicon glyphicon-search"></span>
-</button>
-                      </span>
-                </div>
-            </div>
-        </form>
-    </div>
+<div class="container">
+    <form class="form-inline" name="search" id="search-form" action="/search" method="post">
+        <div class="form-group">
+            <input placeholder="Postal code" class="form-control" id="postal_code" name="postal_code">
+            <input class="form-control" type="text" id="search" name="query" placeholder="Eggs, milk, bread...">
+            <button type="submit" class="btn btn-primary">
+                <span class="glyphicon glyphicon-search"></span>
+            </button>
+        </div>
+    </form>
+</div>
 
-</nav>
 <footer><a href="https://github.com/snacsnoc/grocery-app">github</a></footer>
 {% if result_data['debug_mode'] == "TRUE" %}
-    {{ result_data['debug_mode'] }}
+{{ result_data['debug_mode'] }}
 {% endif %}

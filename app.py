@@ -115,7 +115,7 @@ def search():
             "store_name": {
                 "pc": d["ResultList"][0]["Name"],
                 "saveon": e["items"][0]["name"],
-                "safeway": "safewaySTORENAME",
+                "safeway": "Safeway - GTA-MTL",
                 "walmart": str(walmart_store["payload"]["stores"][0]["id"])
                 + " - "
                 + walmart_store["payload"]["stores"][0]["displayName"],
@@ -133,6 +133,11 @@ def search():
                 "formatted_address": formatted_address,
             },
             "debug_mode": DEBUG,
+            "store_locations": {
+                "pc": d["ResultList"],
+                "saveon": e["items"],
+                "walmart": walmart_store["payload"]["stores"],
+            },
         }
 
     return render_template("search.html", result_data=search_data)
