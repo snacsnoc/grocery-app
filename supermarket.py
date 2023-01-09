@@ -40,6 +40,8 @@ class SupermarketAPI:
             category_id = "93204"
         elif store_brand == "other":
             category_id = "93252"
+        elif store_brand == "all":
+            category_id = ""
 
         bullseye_api_url = (
             "https://ws2.bullseyelocations.com/RestSearch.svc/DoSearch2?ApiKey=9f2e82ec-18f3-407a-b91c-c6149342c389"
