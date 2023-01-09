@@ -36,7 +36,6 @@
 
 </nav>
 <footer><a href="https://github.com/snacsnoc/grocery-app">github</a></footer>
-{% if result_data['debug_mode'] %}
-{{ result_data['debug_mode'] }}
-
+{% if result_data['debug_mode'] == "TRUE" %}
+    {{ result_data['debug_mode'] }}
 {% endif %}
