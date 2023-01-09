@@ -11,14 +11,13 @@ app = Flask(__name__)
 DEBUG = os.getenv("DEBUG_MODE")
 GEOCODER_API_KEY = os.getenv("GEOCODER_API_KEY")
 
+
 # Define the route for the index page
 @app.route("/")
 def index():
-    page_data = {
-        "debug_mode": DEBUG
-    }
+    page_data = {"debug_mode": DEBUG}
     # Render the index.html template in the /templates directory
-    return render_template("index.html",result_data=page_data)
+    return render_template("index.html", result_data=page_data)
 
 
 @app.route("/search", methods=("GET", "POST"))
@@ -36,23 +35,22 @@ def search():
         if postal_code is None:
             raise Exception("Postal code is required")
 
-        if DEBUG is True:
-            longitude = "-115.02"
-            latitude = "49.509724"
+        if DEBUG == "TRUE":
+            longitude = "-115.69"
+            latitude = "49.420"
         else:
             longitude, latitude = lookup_postal_code(postal_code)
-
+        print(latitude)
         if latitude is None:
             raise Exception("No geo coords!")
 
         d = products_data.search_stores_pc(
             latitude, longitude, store_brand="superstore"
         )
-        pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
-
         e = products_data.search_stores_saveon(latitude, longitude)
-        saveon_store_id = e["items"][0]["retailerStoreId"]
 
+        pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+        saveon_store_id = e["items"][0]["retailerStoreId"]
         walmart_store = products_data.search_stores_walmart(postal_code)
 
         # Set default stores (closest store)
@@ -61,7 +59,12 @@ def search():
         products_data.set_store_walmart(latitude, longitude, postal_code)
 
         # Set up a list of functions to send requests to
-        functions = [products_data.query_saveon, products_data.query_pc, products_data.query_safeway, products_data.query_walmart]
+        functions = [
+            products_data.query_saveon,
+            products_data.query_pc,
+            products_data.query_safeway,
+            products_data.query_walmart,
+        ]
 
         # Use a ThreadPoolExecutor to send the requests in parallel
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -73,18 +76,16 @@ def search():
                 try:
                     result = future.result()
                 except Exception as exc:
-                    print(f'Function {func.__name__} generated an exception: {exc}')
+                    print(f"Function {func.__name__} generated an exception: {exc}")
                     results[func.__name__] = exc
                 else:
-                    print(f'Function {func.__name__} returned result: {result}')
+                    # print(f"Function {func.__name__} returned result: {result}")
                     results[func.__name__] = result
 
-
-        a = results['query_pc']
-        c = results['query_saveon']
-        b = results['query_safeway']
-        f = results['query_walmart']
-
+        a = results["query_pc"]
+        c = results["query_saveon"]
+        b = results["query_safeway"]
+        f = results["query_walmart"]
 
         # Check if we have results for all stores
         # TODO: rewrite this
@@ -105,9 +106,19 @@ def search():
                     "pc": parser.parse_pc_json_data(a),
                     "walmart": parser.parse_walmart_json_data(f),
                 },
+                "coords": {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "postal_code": postal_code,
+                },
+                "debug_mode": DEBUG,
             }
         else:
-            search_data = {"error": "No results"}
+            search_data = {
+                "error": "No results",
+                "coords": {"latitude": latitude, "longitude": longitude},
+                "debug_mode": DEBUG,
+            }
 
         return render_template("search.html", result_data=search_data)
 
