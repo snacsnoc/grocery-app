@@ -39,7 +39,7 @@ def search():
             longitude = "-115.69"
             latitude = "49.420"
         else:
-            longitude, latitude = lookup_postal_code_oc(postal_code)
+            longitude, latitude, formatted_address = lookup_postal_code_oc(postal_code)
 
         if latitude is None:
             raise Exception("No geo coords!")
@@ -110,6 +110,7 @@ def search():
                     "latitude": latitude,
                     "longitude": longitude,
                     "postal_code": postal_code,
+                    "formatted_address": formatted_address,
                 },
                 "debug_mode": DEBUG,
             }
@@ -149,15 +150,18 @@ def lookup_postal_code_oc(postal_code):
     """
     # Use the OpenCage Geocoder API to look up the latitude and longitude
     api_key = OPENCAGE_API_KEY
-    api_url = f'https://api.opencagedata.com/geocode/v1/json?q={postal_code}&key={api_key}'
+    api_url = (
+        f"https://api.opencagedata.com/geocode/v1/json?q={postal_code}&key={api_key}"
+    )
     response = requests.get(api_url)
     data = response.json()
 
     # Extract the latitude and longitude from the API response
-    latitude = data['results'][0]['geometry']['lat']
-    longitude = data['results'][0]['geometry']['lng']
+    latitude = data["results"][0]["geometry"]["lat"]
+    longitude = data["results"][0]["geometry"]["lng"]
+    formatted_address = data["results"][0]["formatted"]
 
-    return longitude, latitude
+    return longitude, latitude, formatted_address
 
 
 # Run the app
