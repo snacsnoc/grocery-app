@@ -66,15 +66,20 @@ def search():
     # Set stores by user form selection
     if "pc-store-select" in request.form:
         pc_store_id = request.form["pc-store-select"]
+        pc_store_name = pc_store_id
+
     else:
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+        pc_store_name = d["ResultList"][0]["Name"]
 
     e = products_data.search_stores_saveon(latitude, longitude)
 
     if "saveon-store-select" in request.form:
         saveon_store_id = request.form["saveon-store-select"]
+        saveon_store_name = saveon_store_id
     else:
         saveon_store_id = e["items"][0]["retailerStoreId"]
+        saveon_store_name = e["items"][0]["name"]
 
     walmart_store = products_data.search_stores_walmart(postal_code)
 
@@ -124,8 +129,8 @@ def search():
         search_data = {
             "query": query,
             "store_name": {
-                "pc": d["ResultList"][0]["Name"],
-                "saveon": e["items"][0]["name"],
+                "pc": pc_store_name,
+                "saveon": saveon_store_name,
                 "safeway": "Safeway - GTA-MTL",
                 "walmart": str(walmart_store["payload"]["stores"][0]["id"])
                 + " - "
