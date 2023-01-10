@@ -178,7 +178,7 @@ def search():
             "debug_mode": DEBUG,
             "enable_safeway": enable_safeway,
             "store_locations": {
-                "pc": d["ResultList"],
+                "pc": d["ResultList"], #TODO: check for false store IDs, prevents changing PC stores in search.html
                 "saveon": e["items"],
                 "walmart": walmart_store_search["payload"]["stores"],
             },

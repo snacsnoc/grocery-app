@@ -8,7 +8,7 @@
 <ul>
     <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
     <li>Save-On-Foods: {{ result_data['store_name']['saveon']}} </li>
-    {% if enable_safeway %}
+    {% if result_data['enable_safeway'] %}
     <li>Safeway: {{ result_data['store_name']['safeway']}} </li>
     {% endif %}
     <li>Walmart: {{ result_data['store_name']['walmart']}} </li>
