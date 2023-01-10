@@ -36,6 +36,7 @@ def search():
 
     query = request.form["query"]
     postal_code = request.form["postal_code"]
+    enable_safeway = True if "enable_safeway" in request.form else False
 
     # Look up users postal code, convert to lat & long to search for user's local stores
     # Get each store's normalized data using ProductDataParser
@@ -88,8 +89,14 @@ def search():
 
     products_data.set_store_saveon(saveon_store_id)
 
-    walmart_store = products_data.search_stores_walmart(postal_code)
+    walmart_store_data = {}
+    walmart_store_search = products_data.search_stores_walmart(postal_code)
 
+    if not walmart_store_search['payload']['stores']:
+        walmart_store_data['id'] = walmart_store_data['name'] = 0
+    else:
+        walmart_store_data['id'] = str(walmart_store_search["payload"]["stores"][0]["id"])
+        walmart_store_data['name'] = walmart_store_search["payload"]["stores"][0]["displayName"]
     # Set default stores (closest store)
     products_data.set_store_pc(pc_store_id)
 
@@ -99,9 +106,14 @@ def search():
     functions = [
         products_data.query_saveon,
         products_data.query_pc,
-        products_data.query_safeway,
         products_data.query_walmart,
     ]
+
+    if enable_safeway:
+        functions.append(products_data.query_safeway)
+
+
+
 
     # Use a ThreadPoolExecutor to send the requests in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -120,19 +132,23 @@ def search():
                 results[func.__name__] = result
 
     a = results["query_pc"]
+
+
     c = results["query_saveon"]
 
-    if results["query_saveon"]["status"] == 404:
+    if "status" in results["query_saveon"]:
         parsed_saveon_data = "no results"
     else:
         parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
+    b = results["query_safeway"] if enable_safeway else ""
 
-    b = results["query_safeway"]
+    #b = results["query_safeway"]
     f = results["query_walmart"]
-
+    #print(f"walmart query:\n {f}")
+    #print(f'walmart search stores:\n {walmart_store_data}')
     # Check if we have results for all stores
     # TODO: rewrite this
-    if not all([a, b, c, f]):
+    if not all([a, c, f]):
         search_data = {
             "error": "No results",
             "coords": {"latitude": latitude, "longitude": longitude},
@@ -144,13 +160,11 @@ def search():
             "store_name": {
                 "pc": pc_store_name,
                 "saveon": saveon_store_name,
-                "safeway": "Safeway - GTA-MTL",
-                "walmart": str(walmart_store["payload"]["stores"][0]["id"])
+                "walmart": str(walmart_store_data['id'])
                 + " - "
-                + walmart_store["payload"]["stores"][0]["displayName"],
+                + str(walmart_store_data['name']),
             },
             "results": {
-                "safeway": parser.parse_safeway_json_data(b),
                 "saveon": parsed_saveon_data,
                 "pc": parser.parse_pc_json_data(a),
                 "walmart": parser.parse_walmart_json_data(f),
@@ -162,13 +176,18 @@ def search():
                 "formatted_address": formatted_address,
             },
             "debug_mode": DEBUG,
+            "enable_safeway": enable_safeway,
             "store_locations": {
                 "pc": d["ResultList"],
                 "saveon": e["items"],
-                "walmart": walmart_store["payload"]["stores"],
+                "walmart": walmart_store_search["payload"]["stores"],
             },
         }
-
+    print(search_data)
+    if enable_safeway:
+        search_data["results"]["safeway"] = parser.parse_safeway_json_data(b)
+        search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
+    print(search_data)
     return render_template("search.html", result_data=search_data)
 
 

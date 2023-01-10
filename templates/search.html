@@ -8,10 +8,11 @@
 <ul>
     <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
     <li>Save-On-Foods: {{ result_data['store_name']['saveon']}} </li>
+    {% if enable_safeway %}
     <li>Safeway: {{ result_data['store_name']['safeway']}} </li>
+    {% endif %}
     <li>Walmart: {{ result_data['store_name']['walmart']}} </li>
 </ul>
-
 <div class="table-container">
   <table class="data-table">
     <thead>
@@ -148,6 +149,7 @@ footer .heart {
    "search_results": [
        {% for store, results in result_data['results'].items() %}
     {% for data in results %}
+     {% if data['unit'] and data['name'] and data['image'] %}
     {"Store":"{{ store }}",
     "Price":"{{ data['price'] }}",
     "Unit": "{{ data['unit'] }}",
@@ -155,6 +157,7 @@ footer .heart {
     "Name":"{{ data['name'] }}",
     "Image":"<img height=50px width=50px src={{ data['image'] }}>"
     },
+    {% endif %}
     {% endfor %}
     {% endfor %}
    ]
@@ -277,4 +280,5 @@ window.addEventListener("load", () => {
 </form>
 <footer>
     <small>{{ result_data['coords'] }} </small>
+    <small>displaying stores with data['unit'] and data['name'] and data['image'] </small>
 </footer>
