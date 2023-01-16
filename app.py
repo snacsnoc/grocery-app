@@ -35,7 +35,8 @@ def search():
         raise ValueError("Missing query or postal_code in request.form")
 
     query = request.form["query"]
-    postal_code = request.form["postal_code"]
+    postal_code = request.form["postal_code"].replace(" ", "")
+
     enable_safeway = True if "enable_safeway" in request.form else False
 
     # Look up users postal code, convert to lat & long to search for user's local stores
@@ -183,11 +184,11 @@ def search():
                 "walmart": walmart_store_search["payload"]["stores"],
             },
         }
-    print(search_data)
+
     if enable_safeway:
         search_data["results"]["safeway"] = parser.parse_safeway_json_data(b)
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
-    print(search_data)
+
     return render_template("search.html", result_data=search_data)
 
 
