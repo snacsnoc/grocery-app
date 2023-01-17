@@ -10,12 +10,28 @@
         integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
         crossorigin="anonymous"></script>
 <h1>Grocery store search - compare prices</h1>
+<script>
+  function validateInput() {
+    var postalCode = document.getElementById("postal_code").value.toUpperCase();
+    var postalCodeRegex = /^[ABCEGHJKLMNPRSTVXY]{1}\d{1}[A-Z]{1} *\d{1}[A-Z]{1}\d{1}$/;
 
+    if (!postalCodeRegex.test(postalCode)) {
+        alert("Invalid postal code format. Please enter a valid Canadian postal code.");
+        return false;
+    }
+    if (!document.getElementById("search").value.trim()) {
+        alert("Search query is empty");
+        return false;
+    }
+    return true;
+}
+
+</script>
 <p>Search Walmart.ca, Save-On-Foods, Safeway and Real Canadian Superstore/President's Choice with one search</p>
 
 
 <div class="container">
-<form class="form-inline" name="search" id="search-form" action="/search" method="post">
+<form class="form-inline" name="search" id="search-form" action="/search" method="post" onsubmit="return validateInput()">
   <div class="form-group">
       <input type="checkbox" id="enable_safeway" name="enable_safeway" checked>
     <label for="enable_safeway">Search Safeway</label>
