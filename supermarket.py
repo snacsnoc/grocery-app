@@ -57,7 +57,6 @@ class SupermarketAPI:
             + str(search_radius)
             + "&ReturnGeocode=True&SearchTypeOverride=1&StartIndex=0"
         )
-        bullseye_headers = {}
 
         yaz = requests.get(bullseye_api_url)
 
