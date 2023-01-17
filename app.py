@@ -52,7 +52,7 @@ def search():
         longitude = "-115.69"
         latitude = "49.420"
     else:
-        # Attempt to get longitude, latitude, and formatted_address by looking up the postal code
+        # Attempt to get long, lat, and formatted_address by looking up the postal code
         try:
             longitude, latitude, formatted_address = lookup_postal_code_oc(postal_code)
         except Exception as e:
@@ -93,11 +93,15 @@ def search():
     walmart_store_data = {}
     walmart_store_search = products_data.search_stores_walmart(postal_code)
 
-    if not walmart_store_search['payload']['stores']:
-        walmart_store_data['id'] = walmart_store_data['name'] = 0
+    if not walmart_store_search["payload"]["stores"]:
+        walmart_store_data["id"] = walmart_store_data["name"] = 0
     else:
-        walmart_store_data['id'] = str(walmart_store_search["payload"]["stores"][0]["id"])
-        walmart_store_data['name'] = walmart_store_search["payload"]["stores"][0]["displayName"]
+        walmart_store_data["id"] = str(
+            walmart_store_search["payload"]["stores"][0]["id"]
+        )
+        walmart_store_data["name"] = walmart_store_search["payload"]["stores"][0][
+            "displayName"
+        ]
     # Set default stores (closest store)
     products_data.set_store_pc(pc_store_id)
 
@@ -110,11 +114,9 @@ def search():
         products_data.query_walmart,
     ]
 
+    # Add safeway to search if user selected
     if enable_safeway:
         functions.append(products_data.query_safeway)
-
-
-
 
     # Use a ThreadPoolExecutor to send the requests in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -134,19 +136,19 @@ def search():
 
     a = results["query_pc"]
 
-
     c = results["query_saveon"]
 
+    # Depending on the user's location, there can be no stores around
     if "status" in results["query_saveon"]:
         parsed_saveon_data = "no results"
     else:
         parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
+
     b = results["query_safeway"] if enable_safeway else ""
 
-    #b = results["query_safeway"]
     f = results["query_walmart"]
-    #print(f"walmart query:\n {f}")
-    #print(f'walmart search stores:\n {walmart_store_data}')
+    # print(f"walmart query:\n {f}")
+    # print(f'walmart search stores:\n {walmart_store_data}')
     # Check if we have results for all stores
     # TODO: rewrite this
     if not all([a, c, f]):
@@ -161,9 +163,9 @@ def search():
             "store_name": {
                 "pc": pc_store_name,
                 "saveon": saveon_store_name,
-                "walmart": str(walmart_store_data['id'])
+                "walmart": str(walmart_store_data["id"])
                 + " - "
-                + str(walmart_store_data['name']),
+                + str(walmart_store_data["name"]),
             },
             "results": {
                 "saveon": parsed_saveon_data,
@@ -179,7 +181,9 @@ def search():
             "debug_mode": DEBUG,
             "enable_safeway": enable_safeway,
             "store_locations": {
-                "pc": d["ResultList"], #TODO: check for false store IDs, prevents changing PC stores in search.html
+                "pc": d[
+                    "ResultList"
+                ],  # TODO: check for false store IDs, prevents changing PC stores in search.html
                 "saveon": e["items"],
                 "walmart": walmart_store_search["payload"]["stores"],
             },
@@ -197,7 +201,7 @@ def lookup_postal_code(postal_code):
     url = (
         "https://geocoder.ca/?postal={postal_code}&auth="
         + GEOCODER_API_KEY
-        + "&geoit=XML".format(postal_code=postal_code)
+        + "&geoit=XML".format()
     )
     response = requests.get(url)
     if response.status_code == 200:
@@ -244,6 +248,19 @@ def lookup_postal_code_oc(postal_code):
         pickle.dump((longitude, latitude, formatted_address), f)
 
     return longitude, latitude, formatted_address
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the error
+    app.logger.exception(e)
+    # Render an error template
+    return render_template("error.html"), 500
 
 
 # Run the app
