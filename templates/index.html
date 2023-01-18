@@ -1,51 +1,33 @@
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grocery search</title>
+{% include 'base.html' %}
 
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
-      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<body>
+    {% include 'nav.html' %}
 
-<!-- Latest compiled and minified JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"
-        integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
-        crossorigin="anonymous"></script>
-<h1>Grocery store search - compare prices</h1>
-<script>
-  function validateInput() {
-    var postalCode = document.getElementById("postal_code").value.toUpperCase();
-    var postalCodeRegex = /^[ABCEGHJKLMNPRSTVXY]{1}\d{1}[A-Z]{1} *\d{1}[A-Z]{1}\d{1}$/;
+    <section class="py-5">
+        <div class="container py-5">
+            <div class="row mb-4 mb-lg-5">
+                <div class="col-md-8 col-xl-6 text-center mx-auto">
+                    <h2 class="fw-bold">Search&nbsp;<span style="font-weight: normal !important; color: rgb(224, 224, 224); background-color: transparent;">🇨🇦</span>&nbsp;grocery stores</h2>
+                </div>
+            </div>
+            <p class="text-center">Search Walmart.ca, Save-On-Foods, Safeway and President's Choice with one search<br></p>
+            <div class="row d-flex justify-content-center">
+                <div class="col-md-6 col-xl-4">
+                    <div class="card">
+                        <div class="card-body text-center d-flex flex-column align-items-center">
+                            <form action="/search" method="post" onsubmit="return validateInput()">
+                                <div class="mb-3"><input class="form-control" type="text" id="postal_code" name="postal_code" placeholder="Postal code" style="padding-right: 20px;margin-right: 82px;"><input class="form-control" type="search" id="query" name="query" placeholder="Eggs, milk, bread..."></div>
+                                <div class="mb-3"></div>
+                                <div class="mb-3"><button class="btn btn-primary shadow d-block w-100" type="submit">Search</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% include 'footer.html' %}
 
-    if (!postalCodeRegex.test(postalCode)) {
-        alert("Invalid postal code format. Please enter a valid Canadian postal code.");
-        return false;
-    }
-    if (!document.getElementById("search").value.trim()) {
-        alert("Search query is empty");
-        return false;
-    }
-    return true;
-}
+</body>
 
-</script>
-<p>Search Walmart.ca, Save-On-Foods, Safeway and Real Canadian Superstore/President's Choice with one search</p>
-
-
-<div class="container">
-<form class="form-inline" name="search" id="search-form" action="/search" method="post" onsubmit="return validateInput()">
-  <div class="form-group">
-      <input type="checkbox" id="enable_safeway" name="enable_safeway" checked>
-    <label for="enable_safeway">Search Safeway</label>
-    <input placeholder="Postal code" class="form-control" id="postal_code" name="postal_code">
-    <input class="form-control" type="text" id="search" name="query" placeholder="Eggs, milk, bread...">
-    <button type="submit" class="btn btn-primary">
-      <span class="glyphicon glyphicon-search"></span>
-    </button>
-  </div>
-</form>
-
-</div>
-<p>The closest stores to the supplied postal code are used. You can select different stores after searching</p>
-<footer><a href="https://github.com/snacsnoc/grocery-app">github</a>{% if result_data['debug_mode'] == "TRUE" %}
-{{ result_data['debug_mode'] }}
-{% endif %}
-</footer>
+</html>

@@ -1,0 +1,150 @@
+
+    <footer class="bg-primary-gradient">
+        <div class="container py-4 py-lg-5">
+            <div class="row justify-content-center">
+                <div class="col-sm-4 col-md-3 text-center text-lg-start d-flex flex-column">
+                    <h3 class="fs-6 fw-bold">About</h3>
+                    <ul class="list-unstyled">
+                        <li><a href="https://github.com/snacsnoc/grocery-app">Github</a></li>
+                        <li><a href="#" class="privacy-link">Privacy Policy</a></li>
+
+                    </ul>
+                </div>
+                <div class="col-lg-3 text-center text-lg-start d-flex flex-column align-items-center order-first align-items-lg-start order-lg-last">
+                    <div class="fw-bold d-flex align-items-center mb-2"><span class="bs-icon-sm bs-icon-circle bs-icon-primary d-flex justify-content-center align-items-center bs-icon me-2"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16" class="bi bi-bezier">
+                                <path fill-rule="evenodd" d="M0 10.5A1.5 1.5 0 0 1 1.5 9h1A1.5 1.5 0 0 1 4 10.5v1A1.5 1.5 0 0 1 2.5 13h-1A1.5 1.5 0 0 1 0 11.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10.5.5A1.5 1.5 0 0 1 13.5 9h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zM6 4.5A1.5 1.5 0 0 1 7.5 3h1A1.5 1.5 0 0 1 10 4.5v1A1.5 1.5 0 0 1 8.5 7h-1A1.5 1.5 0 0 1 6 5.5v-1zM7.5 4a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"></path>
+                                <path d="M6 4.5H1.866a1 1 0 1 0 0 1h2.668A6.517 6.517 0 0 0 1.814 9H2.5c.123 0 .244.015.358.043a5.517 5.517 0 0 1 3.185-3.185A1.503 1.503 0 0 1 6 5.5v-1zm3.957 1.358A1.5 1.5 0 0 0 10 5.5v-1h4.134a1 1 0 1 1 0 1h-2.668a6.517 6.517 0 0 1 2.72 3.5H13.5c-.123 0-.243.015-.358.043a5.517 5.517 0 0 0-3.185-3.185z"></path>
+                            </svg></span><span>Grocery app - compare prices freely</span></div>
+                    <p class="text-muted">Sem eleifend donec molestie, integer quisque orci aliquam.</p>
+                </div>
+            </div>
+            <hr>
+            <div class="text-muted d-flex justify-content-between align-items-center pt-3">
+                <p class="mb-0">2023</p>
+            </div>
+        </div>
+    </footer>
+<div class="privacy-box">
+  <a href="#" class="close-button">X</a>
+   This project allows users to search for products using the respective grocer's website API. In order to provide this service, the user's postal code is used. This information is used solely for the purpose of searching for products and is not stored or shared with any third parties. Since this website essentially relays requests, your search data including postal code may be stored by the respective grocers website.
+</div>
+
+<style>
+    .privacy-box {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #f1f1f1;
+  padding: 20px;
+  text-align: center;
+  z-index: 9999;
+  display: none;
+}
+.close-button {
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 18px;
+  color: #000;
+  text-shadow: 0 1px 0 #fff;
+  filter: alpha(opacity=20);
+  opacity: .2;
+}
+
+</style>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script> -->
+<style>
+    @import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap");
+
+body {
+  font-family: "Lato", sans-serif;
+}
+
+.table-container {
+  margin: auto;
+  max-width: 1200px;
+  min-height: 100vh;
+  overflow: scroll;
+  width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+thead tr {
+  border-bottom: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+  height: 1px;
+}
+
+th {
+  font-weight: bold;
+  height: inherit;
+  padding: 0;
+}
+
+th:not(:first-of-type) {
+  border-left: 1px solid #ddd;
+}
+
+th button {
+  background-color: #eee;
+  border: none;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  height: 100%;
+  margin: 0;
+  min-width: max-content;
+  padding: 0.5rem 1rem;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+th button::after {
+  position: absolute;
+  right: 0.5rem;
+}
+
+th button[data-dir="asc"]::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='0, 0 8,0 4,8 8' fill='%23818688'/%3E%3C/svg%3E");
+}
+
+th button[data-dir="desc"]::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='4 0,8 8,0 8' fill='%23818688'/%3E%3C/svg%3E");
+}
+
+tbody tr {
+  border-bottom: 1px solid #ddd;
+}
+
+td {
+  padding: 0.5rem 1rem;
+  text-align: left;
+}
+
+footer {
+  background-color: #ffdfb9;
+  margin: 2rem -8px -8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+footer .heart {
+  color: #dc143c;
+}
+
+</style>
+{% if result_data['debug_mode'] == "TRUE" %}
+{{ result_data['debug_mode'] }}
+{% endif %}
