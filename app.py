@@ -154,7 +154,7 @@ def search():
 
 
 
-    # print(f"walmart query:\n {f}")
+    print(f"walmart query:\n {f}")
     # print(f'walmart search stores:\n {walmart_store_data}')
     # Check if we have results for all stores
     # TODO: rewrite this
