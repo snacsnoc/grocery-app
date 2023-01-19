@@ -147,9 +147,12 @@ def search():
     b = results["query_safeway"] if enable_safeway else ""
 
     f = results["query_walmart"]
-    walmart_data = parser.parse_walmart_json_data(f)
-    if(f is None):
-        walmart_data = "none"
+    if f:
+        walmart_data = parser.parse_walmart_json_data(f)
+    else:
+        walmart_data = {"none": False}
+
+
 
     # print(f"walmart query:\n {f}")
     # print(f'walmart search stores:\n {walmart_store_data}')
