@@ -147,6 +147,9 @@ def search():
     b = results["query_safeway"] if enable_safeway else ""
 
     f = results["query_walmart"]
+    walmart_data = parser.parse_walmart_json_data(f)
+
+
     # print(f"walmart query:\n {f}")
     # print(f'walmart search stores:\n {walmart_store_data}')
     # Check if we have results for all stores
@@ -170,7 +173,7 @@ def search():
             "results": {
                 "saveon": parsed_saveon_data,
                 "pc": parser.parse_pc_json_data(a),
-                "walmart": parser.parse_walmart_json_data(f),
+                "walmart": walmart_data,
             },
             "coords": {
                 "latitude": latitude,
