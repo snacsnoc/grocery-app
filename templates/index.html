@@ -11,14 +11,15 @@
                 </div>
             </div>
             <p class="text-center">Search Walmart.ca, Save-On-Foods, Safeway and President's Choice with one search<br></p>
+            <p class="text-center">Enter your postal code to search nearby stores</p>
             <div class="row d-flex justify-content-center">
                 <div class="col-md-6 col-xl-4">
                     <div class="card">
                         <div class="card-body text-center d-flex flex-column align-items-center">
-                            <form action="/search" method="post" onsubmit="return validateInput()">
+                            <form action="/search" method="post" id="search_form" onsubmit="return validateInput()">
                                 <div class="mb-3"><input class="form-control" type="text" id="postal_code" name="postal_code" placeholder="Postal code" style="padding-right: 20px;margin-right: 82px;"><input class="form-control" type="search" id="query" name="query" placeholder="Eggs, milk, bread..."><input type="checkbox" id="enable_safeway" name="enable_safeway" checked><label for="enable_safeway">Search Safeway</label></div>
                                 <div class="mb-3"></div>
-                                <div class="mb-3"><button class="btn btn-primary shadow d-block w-100" type="submit">Search</button></div>
+                                <div class="mb-3"><button id="search_button" class="btn btn-primary shadow d-block w-100" type="submit"><span class="button__text">Search</span></button></div>
                             </form>
                         </div>
                     </div>
@@ -26,6 +27,63 @@
             </div>
         </div>
     </section>
+
+    <script>
+const theButton = document.querySelector(".btn-primary");
+const searchButton = document.getElementById("search_button");
+
+theButton.addEventListener("click", () => {
+    theButton.classList.add("button--loading");
+    searchButton.disabled = true;
+    document.getElementById("search_form").submit();
+
+});
+</script>
+<style>
+ .button {
+    position: relative;
+    padding: 8px 16px;
+    background: #009579;
+    border: none;
+    outline: none;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.button:active {
+    background: #007a63;
+}
+
+.button__text {
+   /* font: bold 20px 'Quicksand', san-serif; */
+    color: #ffffff;
+    transition: all 0.2s;
+}
+.button--loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    border: 4px solid transparent;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: button-loading-spinner 1s ease infinite;
+}
+@keyframes button-loading-spinner {
+    from {
+        transform: rotate(0turn);
+    }
+
+    to {
+        transform: rotate(1turn);
+    }
+}
+</style>
     {% include 'footer.html' %}
 
 </body>

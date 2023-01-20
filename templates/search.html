@@ -136,7 +136,7 @@ window.addEventListener("load", () => {
         <input class="form-control" type="hidden" id="search" name="query" value="{{result_data['query']}}">
         <input class="form-control" type="hidden" id="search" name="postal_code" value="{{ result_data['coords']['postal_code'] }}">
 
-        <label for="store1">Select a Walmart store:</label>
+        <label for="store1">Select a Walmart store (does not work):</label>
         <select class="form-control" id="walmart-store-select" name="walmart-store-select">
             {% for store_name in result_data['store_locations']['walmart'] %}
                 <option value="{{store_name['id']}}">
