@@ -35,16 +35,15 @@ def search():
         print("ERROR")
         abort(400, "Missing query or postal_code in request.form")
 
-    if request.form.get("query", "").strip() == "" or request.form.get("postal_code", "").strip() == "":
+    if (
+        request.form.get("query", "").strip() == ""
+        or request.form.get("postal_code", "").strip() == ""
+    ):
         print("ERROR")
         abort(400, "query or postal_code empty in request.form")
 
-
     query = request.form["query"]
     postal_code = request.form["postal_code"].replace(" ", "")
-
-
-
 
     enable_safeway = True if "enable_safeway" in request.form else False
 
@@ -52,6 +51,16 @@ def search():
     # Get each store's normalized data using ProductDataParser
     products_data = SupermarketAPI(query)
     parser = ProductDataParser
+
+    # Set up a list of functions to send requests to
+    functions = [
+        products_data.query_saveon,
+        products_data.query_pc,
+    ]
+
+    # Add safeway to search if user selected
+    if enable_safeway:
+        functions.append(products_data.query_safeway)
 
     if postal_code is None:
         raise Exception("Postal code is required")
@@ -78,11 +87,11 @@ def search():
     if "pc-store-select" in request.form:
         pc_store_id = request.form["pc-store-select"]
         pc_store_name = pc_store_id
-
     else:
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
         pc_store_name = d["ResultList"][0]["Name"]
 
+    # Default distance for SaveOn is 50km, seems generous enough
     e = products_data.search_stores_saveon(latitude, longitude)
 
     # Check if we have Save-On stores near us
@@ -100,8 +109,13 @@ def search():
     products_data.set_store_saveon(saveon_store_id)
 
     walmart_store_data = {}
+    # Use this for store list on search result page
     walmart_store_search = products_data.search_stores_walmart(postal_code)
 
+    # If the store search fails, set default data
+    # Since setting the store currently uses lat/long + postal code,
+    # we can assume when the store search fails, there will be no nearest stores
+    # so we do not bother to query Walmart's product search API
     if not walmart_store_search["payload"]["stores"]:
         walmart_store_data["id"] = walmart_store_data["name"] = 0
     else:
@@ -111,21 +125,15 @@ def search():
         walmart_store_data["name"] = walmart_store_search["payload"]["stores"][0][
             "displayName"
         ]
+
+        # Walmart store is set by lat/long not store_id (yet)
+        products_data.set_store_walmart(latitude, longitude, postal_code)
+
+        # Execute W almart search
+        functions.append(products_data.query_walmart)
+
     # Set default stores (closest store)
     products_data.set_store_pc(pc_store_id)
-
-    products_data.set_store_walmart(latitude, longitude, postal_code)
-
-    # Set up a list of functions to send requests to
-    functions = [
-        products_data.query_saveon,
-        products_data.query_pc,
-        products_data.query_walmart,
-    ]
-
-    # Add safeway to search if user selected
-    if enable_safeway:
-        functions.append(products_data.query_safeway)
 
     # Use a ThreadPoolExecutor to send the requests in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -154,25 +162,26 @@ def search():
         parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
 
     if enable_safeway:
-        if results["query_safeway"]['entities'] is None:
+        if results["query_safeway"]["entities"] is None:
             safeway_data = parser.parse_safeway_json_data(results["query_safeway"])
         else:
             safeway_data = "no result"
     else:
         safeway_data = None
 
-    f = results["query_walmart"]
-
-    if f is not None:
-        walmart_data_parsed = parser.parse_walmart_json_data(f)
+    # Check if we queried walmart, otherwise return null data to display
+    if "query_walmart" in results:
+        f = results["query_walmart"]
+        # Check if we have Walmart results
+        walmart_data_parsed = (
+            parser.parse_walmart_json_data(f) if f is not None else None
+        )
     else:
         walmart_data_parsed = {"none": False}
 
-    # print(f"walmart query:\n {f}")
-    # print(f'walmart search stores:\n {walmart_store_data}')
     # Check if we have results for all stores
     # TODO: rewrite this
-    if not all([a, c, f]):
+    if not all([a, c]):
         search_data = {
             "error": "No results",
             "coords": {"latitude": latitude, "longitude": longitude},
@@ -258,7 +267,7 @@ def lookup_postal_code_oc(postal_code):
     )
     response = requests.get(api_url)
     data = response.json()
-
+q
     # Extract the latitude and longitude from the API response
     latitude = data["results"][0]["geometry"]["lat"]
     longitude = data["results"][0]["geometry"]["lng"]
@@ -270,11 +279,14 @@ def lookup_postal_code_oc(postal_code):
 
     return longitude, latitude, formatted_address
 
+
 @app.errorhandler(400)
 def bad_request(error):
     # Redirect to home for now
     # TODO: write the rest of this thing
-    return redirect(url_for('index'))
+    return redirect(url_for("index"))
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
