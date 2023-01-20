@@ -64,12 +64,17 @@ class ProductDataParser:
                 price = product_code["priceInfo"]["currentPrice"]["price"]
             else:
                 price = "NA"
-            if product_code["imageInfo"]["allImages"][0]["url"] != None:
-                image = product_code["imageInfo"]["allImages"][0]["url"]
-            else:
+
+            if product_code["imageInfo"]["allImages"] is None:
                 image = (
                     "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
                 )
+            if product_code["imageInfo"]["allImages"] != None:
+                if (
+                    len(product_code["imageInfo"]["allImages"]) > 0
+                    and product_code["imageInfo"]["allImages"][0] is not None
+                ):
+                    image = product_code["imageInfo"]["allImages"][0]["url"]
 
             product_info_map = {
                 "name": product_code["name"],
