@@ -11,13 +11,13 @@
                 </div>
             </div>
             <p class="text-center">Search Walmart.ca, Save-On-Foods, Safeway and President's Choice with one search<br></p>
-            <p class="text-center">Enter your postal code to search nearby stores</p>
+            <p class="text-center">Enter your postal code and grocery item to search nearby stores</p>
             <div class="row d-flex justify-content-center">
                 <div class="col-md-6 col-xl-4">
                     <div class="card">
                         <div class="card-body text-center d-flex flex-column align-items-center">
                             <form action="/search" method="post" id="search_form" onsubmit="return validateInput()">
-                                <div class="mb-3"><input class="form-control" type="text" id="postal_code" name="postal_code" placeholder="Postal code" style="padding-right: 20px;margin-right: 82px;"><input class="form-control" type="search" id="query" name="query" placeholder="Eggs, milk, bread..."><input type="checkbox" id="enable_safeway" name="enable_safeway" checked><label for="enable_safeway">Search Safeway</label></div>
+                                <div class="mb-3"><input class="form-control" type="text" id="postal_code" name="postal_code" placeholder="Postal code" style="padding-right: 20px;margin-right: 82px;"><input class="form-control" type="search" id="query" name="query" placeholder="Eggs, milk, bread..." required><input type="checkbox" id="enable_safeway" name="enable_safeway" checked><label for="enable_safeway">Search Safeway</label></div>
                                 <div class="mb-3"></div>
                                 <div class="mb-3"><button id="search_button" class="btn btn-primary shadow d-block w-100" type="submit"><span class="button__text">Search</span></button></div>
                             </form>
@@ -29,13 +29,47 @@
     </section>
 
     <script>
+function validateInput() {
+    var postalCode = document.getElementById("postal_code")
+        .value.toUpperCase();
+    var postalCodeRegex = /^[ABCEGHJKLMNPRSTVXY]{1}\d{1}[A-Z]{1} *\d{1}[A-Z]{1}\d{1}$/;
+
+    if (!postalCodeRegex.test(postalCode)) {
+        //alert("Invalid postal code format. Please enter a valid Canadian postal code.");
+        return false;
+    }
+    if (!document.getElementById("query")
+        .value.trim()) {
+        // alert("Search query is empty");
+        return false;
+    }
+
+    return true;
+
+}
+
+
 const theButton = document.querySelector(".btn-primary");
 const searchButton = document.getElementById("search_button");
 
-theButton.addEventListener("click", () => {
+theButton.addEventListener("click", function (event) {
     theButton.classList.add("button--loading");
     searchButton.disabled = true;
-    document.getElementById("search_form").submit();
+    if (!validateInput()) {
+
+        event.preventDefault();
+        theButton.classList.remove("button--loading");
+        searchButton.disabled = false;
+        alert("Invalid input, please check your query and postal code");
+        console.log("validation failed");
+
+
+    } else {
+        //Submit form
+        document.getElementById("search_form").submit();
+
+    }
+
 
 });
 </script>

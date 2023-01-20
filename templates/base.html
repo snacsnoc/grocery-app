@@ -15,20 +15,7 @@
         integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
         crossorigin="anonymous"></script> -->
 <script>
-  function validateInput() {
-    var postalCode = document.getElementById("postal_code").value.toUpperCase();
-    var postalCodeRegex = /^[ABCEGHJKLMNPRSTVXY]{1}\d{1}[A-Z]{1} *\d{1}[A-Z]{1}\d{1}$/;
 
-    if (!postalCodeRegex.test(postalCode)) {
-        alert("Invalid postal code format. Please enter a valid Canadian postal code.");
-        return false;
-    }
-    if (!document.getElementById("query").value.trim()) {
-        alert("Search query is empty");
-        return false;
-    }
-    return true;
-}
 
 $(document).ready(function(){
   $('.privacy-link').click(function(){
