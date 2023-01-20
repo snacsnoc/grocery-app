@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, abort, url_for
 import concurrent.futures
 import requests
 import os
@@ -32,10 +32,19 @@ def index():
 def search():
     print(request.form)
     if "query" not in request.form or "postal_code" not in request.form:
-        raise ValueError("Missing query or postal_code in request.form")
+        print("ERROR")
+        abort(400, "Missing query or postal_code in request.form")
+
+    if request.form.get("query", "").strip() == "" or request.form.get("postal_code", "").strip() == "":
+        print("ERROR")
+        abort(400, "query or postal_code empty in request.form")
+
 
     query = request.form["query"]
     postal_code = request.form["postal_code"].replace(" ", "")
+
+
+
 
     enable_safeway = True if "enable_safeway" in request.form else False
 
@@ -261,7 +270,11 @@ def lookup_postal_code_oc(postal_code):
 
     return longitude, latitude, formatted_address
 
-
+@app.errorhandler(400)
+def bad_request(error):
+    # Redirect to home for now
+    # TODO: write the rest of this thing
+    return redirect(url_for('index'))
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
