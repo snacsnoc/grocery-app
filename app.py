@@ -144,17 +144,22 @@ def search():
     else:
         parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
 
-    b = results["query_safeway"] if enable_safeway else ""
+    if enable_safeway:
+        if results["query_safeway"]['entities'] is None:
+            safeway_data = parser.parse_safeway_json_data(results["query_safeway"])
+        else:
+            safeway_data = "no result"
+    else:
+        safeway_data = None
 
     f = results["query_walmart"]
+
     if f is not None:
-        walmart_data = parser.parse_walmart_json_data(f)
+        walmart_data_parsed = parser.parse_walmart_json_data(f)
     else:
-        walmart_data = {"none": False}
+        walmart_data_parsed = {"none": False}
 
-
-
-    print(f"walmart query:\n {f}")
+    # print(f"walmart query:\n {f}")
     # print(f'walmart search stores:\n {walmart_store_data}')
     # Check if we have results for all stores
     # TODO: rewrite this
@@ -177,7 +182,7 @@ def search():
             "results": {
                 "saveon": parsed_saveon_data,
                 "pc": parser.parse_pc_json_data(a),
-                "walmart": walmart_data,
+                "walmart": walmart_data_parsed,
             },
             "coords": {
                 "latitude": latitude,
@@ -197,7 +202,7 @@ def search():
         }
 
     if enable_safeway:
-        search_data["results"]["safeway"] = parser.parse_safeway_json_data(b)
+        search_data["results"]["safeway"] = safeway_data
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
 
     return render_template("search.html", result_data=search_data)
