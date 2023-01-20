@@ -139,7 +139,7 @@ window.addEventListener("load", () => {
         <label for="store1">Select a Walmart store (does not work):</label>
         <select class="form-control" id="walmart-store-select" name="walmart-store-select">
             {% for store_name in result_data['store_locations']['walmart'] %}
-                <option value="{{store_name['id']}}">
+                <option value="{{store_name['id']}}" disabled>
                     {{ store_name['displayName'] }} - {{ store_name['address1'] }}
                 </option>
             {% endfor %}
