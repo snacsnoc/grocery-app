@@ -97,7 +97,7 @@ class SupermarketAPI:
 
         return self.r.json()
 
-    # Search for Save-On-Food stores given lat and long and return a JSON list
+    # Search for Save-On-Food stores given lat, long and radius in KM and return a JSON list
     def search_stores_saveon(self, latitude, longitude, radius=50):
         saveonfoods_api_url = (
             "https://storefrontgateway.saveonfoods.com/api/near/"
@@ -213,6 +213,8 @@ class SupermarketAPI:
         self.coords = str(lat) + "," + str(long)
         self.postal_code = postal_code
 
+    # Query Walmart search by lat/long & postal code
+    # TODO: use store_id to search by
     def query_walmart(self):
 
         walmart_api_search_path = (
