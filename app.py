@@ -11,7 +11,6 @@ from supermarket import SupermarketAPI
 # Create the Flask application
 app = Flask(__name__)
 DEBUG = os.getenv("DEBUG_MODE")
-GEOCODER_API_KEY = os.getenv("GEOCODER_API_KEY")
 OPENCAGE_API_KEY = os.getenv("OPENCAGE_API_KEY")
 
 cache_dir = "cache"
@@ -226,21 +225,6 @@ def search():
     return render_template("search.html", result_data=search_data)
 
 
-# Look up postal code to lat,long coords
-def lookup_postal_code(postal_code):
-    url = (
-        "https://geocoder.ca/?postal={postal_code}&auth="
-        + GEOCODER_API_KEY
-        + "&geoit=XML".format()
-    )
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.text
-        longitude = data.split("<longt>")[1].split("</longt>")[0]
-        latitude = data.split("<latt>")[1].split("</latt>")[0]
-        return longitude, latitude
-
-
 def lookup_postal_code_oc(postal_code):
     """Look up the latitude and longitude for a Canadian postal code.
 
@@ -267,7 +251,7 @@ def lookup_postal_code_oc(postal_code):
     )
     response = requests.get(api_url)
     data = response.json()
-q
+
     # Extract the latitude and longitude from the API response
     latitude = data["results"][0]["geometry"]["lat"]
     longitude = data["results"][0]["geometry"]["lng"]
