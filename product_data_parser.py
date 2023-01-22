@@ -78,19 +78,11 @@ class ProductDataParser:
                 price = product_code["priceInfo"]["currentPrice"]["price"]
             else:
                 price = "NA"
-            print("WALMART IMAGE:",product_code["imageInfo"]["allImages"])
-            if product_code["imageInfo"]["allImages"] != None:
-                if (
-                    len(product_code["imageInfo"]["allImages"]) > 0
-                    and product_code["imageInfo"]["allImages"][0] is not None
-                ):
-                    image = product_code["imageInfo"]["allImages"][0]["url"]
-                else:
-                    image = "https://i.scdn.co/image/ab67616d0000b273989d19dc496314181d93c485"
-            else:
-                image = (
-                    "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
-                )
+            image = "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
+            if 'allImages' in product_code['imageInfo']:
+                if product_code['imageInfo']['allImages'] and product_code['imageInfo']['allImages'][0]:
+                    image = product_code['imageInfo']['allImages'][0]['url']
+
             product_info_map = {
                 "name": product_code["name"],
                 "price": price,
