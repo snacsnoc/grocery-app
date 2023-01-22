@@ -1,12 +1,11 @@
 from flask import Flask, render_template, request, redirect, abort, url_for
 import concurrent.futures
-import requests
 import os
-from pymemcache.client.base import Client
-import pickle
+
 
 from product_data_parser import ProductDataParser
 from supermarket import SupermarketAPI
+from location_lookupc import LocationLookupC
 
 # Create the Flask application
 app = Flask(__name__)
@@ -72,8 +71,8 @@ def search():
     else:
         # Attempt to get long, lat, and formatted_address by looking up the postal code
         try:
-            postal_lookup = LocationLookupC(postal_code, cache_type="pickle")
-            longitude, latitude, formatted_address = postal_lookup.lookup_coords()
+            postal_lookup = LocationLookupC(OPENCAGE_API_KEY, cache_type="pickle")
+            longitude, latitude, formatted_address = postal_lookup.lookup_coords(postal_code)
         except Exception as e:
             print(f"Error looking up postal code: {e}")
             raise
@@ -226,61 +225,6 @@ def search():
 
     return render_template("search.html", result_data=search_data)
 
-
-# Lookup address (postal code in this case) and store/retrieve from cache
-class LocationLookupC:
-    def __init__(self, postal_code, cache_type="pickle"):
-        self.postal_code = postal_code
-        self.cache_type = cache_type
-
-    def set_memcache_conf(self, memcache_ip, memcache_port):
-        self.mc_client = Client([f"{memcache_ip}:{memcache_port}"])
-
-        """Look up the latitude and longitude for a Canadian postal code.
-
-        Args:
-            postal_code (str): A Canadian postal code.
-
-        Returns:
-            A tuple containing the latitude and longitude for the postal code, in that order.
-        """
-
-    def lookup_coords(self):
-
-        if self.cache_type == "pickle":
-            # Check if the results are already in the cache
-            cache_filename = f"cache/postal_code_{self.postal_code}.pkl"
-
-            if not os.path.exists(cache_filename):
-                print("Postal code cache miss")
-            else:
-                with open(cache_filename, "rb") as f:
-                    print("Postal code cache hit")
-                    return pickle.load(f)
-        if self.cache_type == "memcache":
-            return self.mc_client.get(self.postal_code)
-
-        # Use the OpenCage Geocoder API to look up the latitude and longitude
-        api_key = OPENCAGE_API_KEY
-        api_url = f"https://api.opencagedata.com/geocode/v1/json?q={self.postal_code}&key={api_key}"
-        response = requests.get(api_url)
-        data = response.json()
-
-        # Extract the latitude and longitude from the API response
-        latitude = data["results"][0]["geometry"]["lat"]
-        longitude = data["results"][0]["geometry"]["lng"]
-        formatted_address = data["results"][0]["formatted"]
-
-        if self.cache_type == "pickle":
-            # Save the results to the cache
-            with open(cache_filename, "wb") as f:
-                pickle.dump((longitude, latitude, formatted_address), f)
-        elif self.cache_type == "memcache":
-            self.mc_client.set(
-                self.postal_code, (longitude, latitude, formatted_address)
-            )  # only stores the value if the key doesn't exist
-
-        return longitude, latitude, formatted_address
 
 
 @app.errorhandler(400)
