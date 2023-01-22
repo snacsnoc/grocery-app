@@ -10,14 +10,23 @@ class ProductDataParser:
                 image = (
                     "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
                 )
+            if (
+                len(product_code["prices"]["comparisonPrices"]) > 0
+                and product_code["prices"]["comparisonPrices"][0]["value"] is not None
+            ):
+                unit_price = product_code["prices"]["comparisonPrices"][0]["value"]
+            else:
+                unit_price = "NA"
 
             product_info_map = {
                 "name": product_code["name"],
                 "price": product_code["prices"]["price"]["value"],
                 "quantity": product_code["prices"]["price"]["quantity"],
                 "unit": product_code["prices"]["price"]["unit"],
+                "unit_price": f"${unit_price}/100",
                 "image": image,
             }
+
             result.append(product_info_map)
         return result
 
@@ -29,7 +38,7 @@ class ProductDataParser:
                 "name": product_info["name"],
                 "price": product_info["price"]["current"]["amount"],
                 "image": product_info["image"]["src"],
-                # "size": product_info["size"]["value"],
+                "unit_price": "NA",
                 "unit": product_info["price"]["unit"]["label"],
             }
             result.append(product_info_map)
@@ -39,11 +48,16 @@ class ProductDataParser:
         product_data = data["products"]
         result = []
         for product_code in product_data:
+            # This is very CPU expensive line of code
+            unit_price = (
+                product_code["priceNumeric"] / product_code["unitOfSize"]["size"]
+            ) * 100
             product_info_map = {
                 "name": product_code["name"],
                 "price": product_code["priceNumeric"],
                 "quantity": product_code["unitOfSize"]["size"],
                 "unit": product_code["unitOfSize"]["type"],
+                "unit_price": f"${unit_price:.2f}/100",
                 "image": product_code["image"]["default"],
             }
             result.append(product_info_map)
@@ -64,23 +78,25 @@ class ProductDataParser:
                 price = product_code["priceInfo"]["currentPrice"]["price"]
             else:
                 price = "NA"
-
-            if product_code["imageInfo"]["allImages"] is None:
-                image = (
-                    "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
-                )
+            print("WALMART IMAGE:",product_code["imageInfo"]["allImages"])
             if product_code["imageInfo"]["allImages"] != None:
                 if (
                     len(product_code["imageInfo"]["allImages"]) > 0
                     and product_code["imageInfo"]["allImages"][0] is not None
                 ):
                     image = product_code["imageInfo"]["allImages"][0]["url"]
-
+                else:
+                    image = "https://i.scdn.co/image/ab67616d0000b273989d19dc496314181d93c485"
+            else:
+                image = (
+                    "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
+                )
             product_info_map = {
                 "name": product_code["name"],
                 "price": price,
-                "quantity": quantity,
+                "quantity": "NA-",
                 "unit": product_code["salesUnitType"],
+                "unit_price": quantity,
                 "image": image,
             }
             result.append(product_info_map)
