@@ -209,12 +209,11 @@ class SupermarketAPI:
         r = requests.get(self.walmart_api_url + walmart_search_api_search_path)
         return r.json()
 
-    def set_store_walmart(self, lat, long, postal_code):
-        self.coords = str(lat) + "," + str(long)
-        self.postal_code = postal_code
+    # Set Walmart store by ID
+    def set_store_walmart(self, store_id):
+        self.walmart_store_number = store_id
 
-    # Query Walmart search by lat/long & postal code
-    # TODO: use store_id to search by
+    # Query Walmart search by store ID
     def query_walmart(self):
 
         walmart_api_search_path = (
@@ -254,8 +253,9 @@ class SupermarketAPI:
 
         walmart_cookies = {
             "WM_SEC.AUTH_TOKEN": "MTAyOTYyMDE4Fil%2FreSPGCFIzeU859bxShtSv%2Fj8OoHIkjOZqg7cKKtzQIdpmFzg%2FSyfAt0YdIIXdfhWR7CXf0l5Qc6A6tDeoeX5zjz2fyw8ykcDzcOFmVZ2DNn288pSUIbbHwiiE18Gj8OFN4dileb20bpDLeCIlSFd%2FHsc7bnSe4%2BTLU2zbj3qFXCDZhTgwdgz58vBPqJGmkxZqbhaRFIJ5UKTqNuDfuKxzjTI9b2Ox5ET5ay4mObb%2FSoGFgAYL9DGZ8K45WCXM%2FFHGZ2dCNmxWrdkwqEKrunqHP%2BELc1vcoMIfiAZWUoadqmNrmJhxgd2bNohwCkPG1I7uGmt7s6IA85gZ1vL8Irw4%2B1G54bxExI%2FfXW%2FZG8dDNIfTntJm6bUfn07FPjedimhYhzdDILh5vFDkGRcQEr1eX9YGQ0laieVMoEr348%3D",
-            "walmart.nearestLatLng": self.coords,
-            "walmart.nearestPostalCode": self.postal_code,
+            "deliveryCatchment": self.walmart_store_number,
+            # "walmart.nearestPostalCode": "V4G1N4",
+            "defaultNearestStoreId": self.walmart_store_number,
         }
         walmart_data_body = {
             "operationName": "getPreso",

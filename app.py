@@ -72,7 +72,9 @@ def search():
         # Attempt to get long, lat, and formatted_address by looking up the postal code
         try:
             postal_lookup = LocationLookupC(OPENCAGE_API_KEY, cache_type="pickle")
-            longitude, latitude, formatted_address = postal_lookup.lookup_coords(postal_code)
+            longitude, latitude, formatted_address = postal_lookup.lookup_coords(
+                postal_code
+            )
         except Exception as e:
             print(f"Error looking up postal code: {e}")
             raise
@@ -113,21 +115,23 @@ def search():
     walmart_store_search = products_data.search_stores_walmart(postal_code)
 
     # If the store search fails, set default data
-    # Since setting the store currently uses lat/long + postal code,
-    # we can assume when the store search fails, there will be no nearest stores
-    # so we do not bother to query Walmart's product search API
+    # Check if we're specifying the Walmart store ID (via user selection)
     if not walmart_store_search["payload"]["stores"]:
         walmart_store_data["id"] = walmart_store_data["name"] = 0
     else:
-        walmart_store_data["id"] = str(
-            walmart_store_search["payload"]["stores"][0]["id"]
-        )
+        if "walmart-store-select" in request.form:
+            walmart_store_data["id"] = request.form["walmart-store-select"]
+        else:
+            walmart_store_data["id"] = str(
+                walmart_store_search["payload"]["stores"][0]["id"]
+            )
         walmart_store_data["name"] = walmart_store_search["payload"]["stores"][0][
             "displayName"
         ]
 
-        # Walmart store is set by lat/long not store_id (yet)
-        products_data.set_store_walmart(latitude, longitude, postal_code)
+        # Walmart store is now set by store ID
+
+        products_data.set_store_walmart(walmart_store_data["id"])
 
         # Execute W almart search
         functions.append(products_data.query_walmart)
@@ -224,7 +228,6 @@ def search():
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
 
     return render_template("search.html", result_data=search_data)
-
 
 
 @app.errorhandler(400)
