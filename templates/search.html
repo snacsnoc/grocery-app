@@ -1,43 +1,58 @@
 {% include 'base.html' %}
 
 <body>
-    {% include 'nav.html' %}
+{% include 'nav.html' %}
 
-        <section class="py-5">
-        <div class="container py-5">
+<section class="py-5">
+    <div class="container py-5">
 
-<h2>Search results</h2>
-{{ error }}
-<p>
-    Store names:
-</p>
+        <h2>Search results</h2>
+        {{ error }}
+        <p>
+            Store names:
+        </p>
 
-<ul>
-    <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
-    <li>Save-On-Foods: {{ result_data['store_name']['saveon']}} </li>
-    {% if result_data['enable_safeway'] %}
-    <li>Safeway: {{ result_data['store_name']['safeway']}} </li>
-    {% endif %}
-    <li>Walmart: {{ result_data['store_name']['walmart']}} </li>
-</ul>
-<small><i>Tap table header to sort</i></small>
-<div class="table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th><button id="Store">Store</button></th>
-        <th><button id="Price">Price</button></th>
-        <th><button id="Unit">Unit</button></th>
-        <th><button id="Quantity">Quantity</button></th>
-        <th><button id="Name">Name</button></th>
-        <th><button id="Image">Image</button></th>
-      </tr>
-    </thead>
-    <tbody id="table-content"></tbody>
-  </table>
-</div>
+        <ul>
+            <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
+            <li>Save-On-Foods: {{ result_data['store_name']['saveon']}}</li>
+            {% if result_data['enable_safeway'] %}
+            <li>Safeway: {{ result_data['store_name']['safeway']}}</li>
+            {% endif %}
+            <li>Walmart: {{ result_data['store_name']['walmart']}}</li>
+        </ul>
+        <small><i>Tap table header to sort</i></small>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>
+                        <button id="Store">Store</button>
+                    </th>
+                    <th>
+                        <button id="Price">Price</button>
+                    </th>
+                    <th>
+                        <button id="Unit">Unit</button>
+                    </th>
+                    <th>
+                        <button id="UnitPrice">UnitPrice</button>
+                    </th>
+                    <th>
+                        <button id="Quantity">Quantity</button>
+                    </th>
+                    <th>
+                        <button id="Name">Name</button>
+                    </th>
+                    <th>
+                        <button id="Image">Image</button>
+                    </th>
+                </tr>
+                </thead>
+                <tbody id="table-content"></tbody>
+            </table>
+        </div>
 
-<script type="application/javascript">
+        <script type="application/javascript">
     const response = {
    "search_results": [
        {% for store, results in result_data['results'].items() %}
@@ -46,6 +61,7 @@
     {"Store":"{{ store }}",
     "Price":"{{ data['price'] }}",
     "Unit": "{{ data['unit'] }}",
+    "UnitPrice": "{{ data['unit_price'] }}",
     "Quantity": "{{ data['quantity'] }}",
     "Name":"{{ data['name'] }}",
     "Image":"<img height=50px width=50px src={{ data['image'] }}>"
@@ -129,51 +145,53 @@ window.addEventListener("load", () => {
   });
 });
 
-</script>
-<h4>Change stores</h4>
-<form action="/search" method="post">
-    <div class="form-group" >
-        <input class="form-control" type="hidden" id="search" name="query" value="{{result_data['query']}}">
-        <input class="form-control" type="hidden" id="search" name="postal_code" value="{{ result_data['coords']['postal_code'] }}">
 
-        <label for="store1">Select a Walmart store (does not work):</label>
-        <select class="form-control" id="walmart-store-select" name="walmart-store-select">
-            {% for store_name in result_data['store_locations']['walmart'] %}
-                <option value="{{store_name['id']}}" disabled>
-                    {{ store_name['displayName'] }} - {{ store_name['address1'] }}
-                </option>
-            {% endfor %}
-        </select>
+        </script>
+        <h4>Change stores</h4>
+        <form action="/search" method="post">
+            <div class="form-group">
+                <input class="form-control" type="hidden" id="search" name="query" value="{{result_data['query']}}">
+                <input class="form-control" type="hidden" id="search" name="postal_code"
+                       value="{{ result_data['coords']['postal_code'] }}">
+
+                <label for="store1">Select a Walmart store (does not work):</label>
+                <select class="form-control" id="walmart-store-select" name="walmart-store-select">
+                    {% for store_name in result_data['store_locations']['walmart'] %}
+                    <option value="{{store_name['id']}}" disabled>
+                        {{ store_name['displayName'] }} - {{ store_name['address1'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="store2">
+                    Select a Superstore/Independent/Shoppers Drug Mart/Loblaws store:
+                </label>
+                <select class="form-control" id="pc-store-select" name="pc-store-select">
+                    {% for store_name in result_data['store_locations']['pc'] %}
+                    <option value="{{store_name['Attributes'][0]['AttributeValue']}}">
+                        {{ store_name['Name'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="store3">
+                    Select a Save-On-Foods store:
+                </label>
+                <select class="form-control" id="saveon-store-select" name="saveon-store-select">
+                    {% for store_name in result_data['store_locations']['saveon'] %}
+                    <option value="{{store_name['retailerStoreId']}}">
+                        {{ store_name['name'] }} - {{ store_name['addressLine1'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-default">Submit</button>
+        </form>
     </div>
-    <div class="form-group">
-        <label for="store2">
-            Select a Superstore/Independent/Shoppers Drug Mart/Loblaws store:
-        </label>
-        <select class="form-control" id="pc-store-select" name="pc-store-select">
-            {% for store_name in result_data['store_locations']['pc'] %}
-                <option value="{{store_name['Attributes'][0]['AttributeValue']}}">
-                    {{ store_name['Name'] }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="store3">
-            Select a Save-On-Foods store:
-        </label>
-        <select class="form-control" id="saveon-store-select" name="saveon-store-select">
-            {% for store_name in result_data['store_locations']['saveon'] %}
-                <option value="{{store_name['retailerStoreId']}}">
-                    {{ store_name['name'] }} - {{ store_name['addressLine1'] }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <button type="submit" class="btn btn-default">Submit</button>
-</form>
-        </div>
-        </section>
-    {% include 'footer.html' %}
+</section>
+{% include 'footer.html' %}
 
 </body>
 
