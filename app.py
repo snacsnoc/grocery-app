@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, abort, url_for
 import concurrent.futures
 import os
 
+from line_profiler_pycharm import profile
 
 from product_data_parser import ProductDataParser
 from supermarket import SupermarketAPI
@@ -27,49 +28,32 @@ def index():
     return render_template("index.html", result_data=page_data)
 
 
-@app.route("/search", methods=("GET", "POST"))
-def search():
-    print(request.form)
-    if "query" not in request.form or "postal_code" not in request.form:
-        print("ERROR")
+def validate_request_form(request_form):
+    if "query" not in request_form or "postal_code" not in request_form:
+        print("ERROR: Missing params")
         abort(400, "Missing query or postal_code in request.form")
 
     if (
-        request.form.get("query", "").strip() == ""
-        or request.form.get("postal_code", "").strip() == ""
+        request_form.get("query", "").strip() == ""
+        or request_form.get("postal_code", "").strip() == ""
     ):
-        print("ERROR")
+        print("ERROR: empty params")
         abort(400, "query or postal_code empty in request.form")
 
-    query = request.form["query"]
-    postal_code = request.form["postal_code"].replace(" ", "")
+    query = request_form["query"]
+    postal_code = request_form["postal_code"].replace(" ", "")
+    enable_safeway = True if "enable_safeway" in request_form else False
 
-    enable_safeway = True if "enable_safeway" in request.form else False
+    return query, postal_code, enable_safeway
 
-    # Look up users postal code, convert to lat & long to search for user's local stores
-    # Get each store's normalized data using ProductDataParser
-    products_data = SupermarketAPI(query)
-    parser = ProductDataParser
-
-    # Set up a list of functions to send requests to
-    functions = [
-        products_data.query_saveon,
-        products_data.query_pc,
-    ]
-
-    # Add safeway to search if user selected
-    if enable_safeway:
-        functions.append(products_data.query_safeway)
-
+def get_geo_coords(postal_code):
     if postal_code is None:
         raise Exception("Postal code is required")
 
-    # If DEBUG is "TRUE", set longitude and latitude to default values
     if DEBUG == "TRUE":
         longitude = "-115.69"
         latitude = "49.420"
     else:
-        # Attempt to get long, lat, and formatted_address by looking up the postal code
         try:
             postal_lookup = LocationLookupC(OPENCAGE_API_KEY, cache_type="pickle")
             longitude, latitude, formatted_address = postal_lookup.lookup_coords(
@@ -79,69 +63,66 @@ def search():
             print(f"Error looking up postal code: {e}")
             raise
 
-    # If latitude is None, raise an exception
     if latitude is None:
         raise Exception("No geo coords!")
 
-    d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+    return longitude, latitude, formatted_address
 
-    # Set stores by user form selection
-    if "pc-store-select" in request.form:
-        pc_store_id = request.form["pc-store-select"]
+def set_walmart_store_data(request_form, products_data, postal_code):
+    walmart_store_search = products_data.search_stores_walmart(postal_code)
+
+    if "walmart-store-select" in request_form:
+        walmart_store_id = request_form["walmart-store-select"]
+
+        walmart_store_name = [
+            store["displayName"]
+            for store in walmart_store_search["payload"]["stores"]
+            if store["id"] == walmart_store_id
+        ]
+    else:
+        walmart_store_id = walmart_store_search["payload"]["stores"][0]["id"]
+        walmart_store_name = walmart_store_search["payload"]["stores"][0]["displayName"]
+    return {
+        "id": str(walmart_store_id),
+        "name": walmart_store_name,
+        "payload": {"stores": walmart_store_search["payload"]["stores"]},
+    }
+
+@profile
+def set_store_ids(request_form, products_data, latitude, longitude, postal_code):
+    d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+    if "pc-store-select" in request_form:
+        pc_store_id = request_form["pc-store-select"]
         pc_store_name = pc_store_id
     else:
         pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
         pc_store_name = d["ResultList"][0]["Name"]
 
-    # Default distance for SaveOn is 50km, seems generous enough
     e = products_data.search_stores_saveon(latitude, longitude)
-
-    # Check if we have Save-On stores near us
-    if not e["items"]:
-        saveon_store_name = False
-        saveon_store_id = False
+    if "saveon-store-select" in request_form:
+        saveon_store_id = request_form["saveon-store-select"]
+        saveon_store_name = saveon_store_id
     else:
-        if "saveon-store-select" in request.form:
-            saveon_store_id = request.form["saveon-store-select"]
-            saveon_store_name = saveon_store_id
-        else:
-            saveon_store_id = e["items"][0]["retailerStoreId"]
-            saveon_store_name = e["items"][0]["name"]
+        saveon_store_id = e["items"][0]["retailerStoreId"] if e["items"] else False
+        saveon_store_name = e["items"][0]["name"] if e["items"] else False
 
-    products_data.set_store_saveon(saveon_store_id)
+    walmart_store_data = set_walmart_store_data(
+        request_form, products_data, postal_code
+    )
 
-    walmart_store_data = {}
-    # Use this for store list on search result page
-    walmart_store_search = products_data.search_stores_walmart(postal_code)
+    return (
+        pc_store_id,
+        pc_store_name,
+        saveon_store_id,
+        saveon_store_name,
+        walmart_store_data,
+        d,
+        e,
+    )
 
-    # If the store search fails, set default data
-    # Check if we're specifying the Walmart store ID (via user selection)
-    if not walmart_store_search["payload"]["stores"]:
-        walmart_store_data["id"] = walmart_store_data["name"] = 0
-    else:
-        if "walmart-store-select" in request.form:
-            walmart_store_data["id"] = request.form["walmart-store-select"]
-        else:
-            walmart_store_data["id"] = str(
-                walmart_store_search["payload"]["stores"][0]["id"]
-            )
-        walmart_store_data["name"] = walmart_store_search["payload"]["stores"][0][
-            "displayName"
-        ]
 
-        # Walmart store is now set by store ID
-
-        products_data.set_store_walmart(walmart_store_data["id"])
-
-        # Execute W almart search
-        functions.append(products_data.query_walmart)
-
-    # Set default stores (closest store)
-    products_data.set_store_pc(pc_store_id)
-
-    # Use a ThreadPoolExecutor to send the requests in parallel
+def execute_search(functions):
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Start the load operations and mark each future with its function
         future_to_function = {executor.submit(func): func for func in functions}
         results = {}
         for future in concurrent.futures.as_completed(future_to_function):
@@ -149,17 +130,32 @@ def search():
             try:
                 result = future.result()
             except Exception as exc:
-                print(f"Function {func.__name__} generated an exception: {exc}")
+                # print(f"Function {func.__name__} generated an exception: {exc}")
                 results[func.__name__] = exc
             else:
-                # print(f"Function {func.__name__} returned result: {result}")
                 results[func.__name__] = result
 
-    a = results["query_pc"]
+    return results
 
+
+def process_search_results(
+    results,
+    query,
+    enable_safeway,
+    parser,
+    latitude,
+    longitude,
+    postal_code,
+    formatted_address,
+    pc_store_name,
+    saveon_store_name,
+    walmart_store_data,
+    pc_store_data,
+    saveon_store_data,
+):
+    a = results["query_pc"]
     c = results["query_saveon"]
 
-    # Depending on the user's location, there can be no stores around
     if "status" in results["query_saveon"]:
         parsed_saveon_data = "no results"
     else:
@@ -173,18 +169,14 @@ def search():
     else:
         safeway_data = None
 
-    # Check if we queried walmart, otherwise return null data to display
     if "query_walmart" in results:
         f = results["query_walmart"]
-        # Check if we have Walmart results
         walmart_data_parsed = (
             parser.parse_walmart_json_data(f) if f is not None else None
         )
     else:
         walmart_data_parsed = {"none": False}
 
-    # Check if we have results for all stores
-    # TODO: rewrite this
     if not all([a, c]):
         search_data = {
             "error": "No results",
@@ -197,9 +189,9 @@ def search():
             "store_name": {
                 "pc": pc_store_name,
                 "saveon": saveon_store_name,
-                "walmart": str(walmart_store_data["id"])
+                "walmart": str(walmart_store_data[0]["id"])
                 + " - "
-                + str(walmart_store_data["name"]),
+                + walmart_store_data[0]["displayName"],
             },
             "results": {
                 "saveon": parsed_saveon_data,
@@ -215,17 +207,69 @@ def search():
             "debug_mode": DEBUG,
             "enable_safeway": enable_safeway,
             "store_locations": {
-                "pc": d[
-                    "ResultList"
-                ],  # TODO: check for false store IDs, prevents changing PC stores in search.html
-                "saveon": e["items"],
-                "walmart": walmart_store_search["payload"]["stores"],
+                "pc": pc_store_data["ResultList"],
+                "saveon": saveon_store_data["items"],
+                "walmart": walmart_store_data,
             },
         }
 
     if enable_safeway:
         search_data["results"]["safeway"] = safeway_data
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
+
+    return search_data
+
+
+@app.route("/search", methods=("GET", "POST"))
+def search():
+    query, postal_code, enable_safeway = validate_request_form(request.form)
+
+    products_data = SupermarketAPI(query)
+    parser = ProductDataParser
+
+    functions = [
+        products_data.query_saveon,
+        products_data.query_pc,
+    ]
+
+    if enable_safeway:
+        functions.append(products_data.query_safeway)
+
+    longitude, latitude, formatted_address = get_geo_coords(postal_code)
+    (
+        pc_store_id,
+        pc_store_name,
+        saveon_store_id,
+        saveon_store_name,
+        walmart_store_data,
+        d,
+        e,
+    ) = set_store_ids(request.form, products_data, latitude, longitude, postal_code)
+
+    products_data.set_store_saveon(saveon_store_id)
+    products_data.set_store_pc(pc_store_id)
+    products_data.set_store_walmart(walmart_store_data["id"])
+
+    # Execute Walmart search only if "walmart-store-select" is in the request form
+    if "walmart-store-select" in request.form:
+        functions.append(products_data.query_walmart)
+
+    results = execute_search(functions)
+    search_data = process_search_results(
+        results,
+        query,
+        enable_safeway,
+        parser,
+        latitude,
+        longitude,
+        postal_code,
+        formatted_address,
+        pc_store_name,
+        saveon_store_name,
+        walmart_store_data["payload"]["stores"],
+        d,
+        e,
+    )
 
     return render_template("search.html", result_data=search_data)
 
