@@ -79,9 +79,12 @@ class ProductDataParser:
             else:
                 price = "NA"
             image = "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
-            if 'allImages' in product_code['imageInfo']:
-                if product_code['imageInfo']['allImages'] and product_code['imageInfo']['allImages'][0]:
-                    image = product_code['imageInfo']['allImages'][0]['url']
+            if "allImages" in product_code["imageInfo"]:
+                if (
+                    product_code["imageInfo"]["allImages"]
+                    and product_code["imageInfo"]["allImages"][0]
+                ):
+                    image = product_code["imageInfo"]["allImages"][0]["url"]
 
             product_info_map = {
                 "name": product_code["name"],

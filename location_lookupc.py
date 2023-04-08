@@ -10,7 +10,7 @@ class LocationLookupC:
         self.api_key = api_key
 
     def set_memcache_conf(self, memcache_ip, memcache_port):
-        self.mc_client = Client(memcache_ip,memcache_port)
+        self.mc_client = Client(memcache_ip, memcache_port)
 
         """Look up the latitude and longitude for a Canadian postal code.
 
@@ -57,4 +57,3 @@ class LocationLookupC:
             )  # only stores the value if the key doesn't exist
 
         return longitude, latitude, formatted_address
-
