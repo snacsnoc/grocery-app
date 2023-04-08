@@ -77,3 +77,12 @@ URL params:
 ?query=carrots&page=1&displayGuidedNav=true&additionalQueryParams=%7BisMoreOptionsTileEnabled%3Dtrue%7D
 ```
 Result: https://gist.github.com/snacsnoc/c8d09bd8b4811fef899899849925d9bb
+
+You can search by lat/long + postal code or by store ID by setting the appropriate cookies.
+```python
+{
+            "deliveryCatchment": self.walmart_store_number,
+            "walmart.nearestPostalCode": "V4G1N4",
+            "defaultNearestStoreId": self.walmart_store_number,
+}
+```
