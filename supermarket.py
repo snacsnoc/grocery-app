@@ -205,8 +205,12 @@ class SupermarketAPI:
         walmart_search_api_search_path = (
             "/en/stores-near-me/api/searchStores?singleLineAddr=" + postal_code
         )
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
 
-        r = requests.get(self.walmart_api_url + walmart_search_api_search_path)
+        r = requests.get(self.walmart_api_url + walmart_search_api_search_path,headers=headers)
+
         return r.json()
 
     # Set Walmart store by ID
