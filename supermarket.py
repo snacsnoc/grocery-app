@@ -66,7 +66,7 @@ class SupermarketAPI:
         self.store_number = store_number
 
     def query_pc(self, pc_store_brand="superstore"):
-        pc_api_url = "https://api.pcexpress.ca/product-facade/v3/products/search"
+        pc_api_url = "https://api.pcexpress.ca/product-facade/v4/products/search"
 
         pc_headers = {
             "Host": "api.pcexpress.ca",
@@ -79,9 +79,9 @@ class SupermarketAPI:
         pc_data_query = {
             "pagination": {"from": 0, "size": 48},
             "banner": pc_store_brand,
-            "cartId": "228fb500-b46f-43d2-a6c4-7b498d5be8a9",
+            "cartId": "315a3fa5-6cbf-489f-b918-584210200369",
             "lang": "en",
-            "date": "05122022",
+            "date": "21082023",
             "storeId": self.store_number,
             "pcId": False,
             "pickupType": "STORE",
@@ -93,7 +93,6 @@ class SupermarketAPI:
             },
         }
         self.r = requests.post(pc_api_url, json=pc_data_query, headers=pc_headers)
-        # print("The status is: %s", r.status_code)
 
         return self.r.json()
 
