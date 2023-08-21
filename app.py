@@ -46,6 +46,7 @@ def validate_request_form(request_form):
 
     return query, postal_code, enable_safeway
 
+
 def get_geo_coords(postal_code):
     if postal_code is None:
         raise Exception("Postal code is required")
@@ -68,6 +69,7 @@ def get_geo_coords(postal_code):
 
     return longitude, latitude, formatted_address
 
+
 def set_walmart_store_data(request_form, products_data, postal_code):
     walmart_store_search = products_data.search_stores_walmart(postal_code)
 
@@ -82,11 +84,13 @@ def set_walmart_store_data(request_form, products_data, postal_code):
     else:
         walmart_store_id = walmart_store_search["payload"]["stores"][0]["id"]
         walmart_store_name = walmart_store_search["payload"]["stores"][0]["displayName"]
+
     return {
         "id": str(walmart_store_id),
         "name": walmart_store_name,
         "payload": {"stores": walmart_store_search["payload"]["stores"]},
     }
+
 
 @profile
 def set_store_ids(request_form, products_data, latitude, longitude, postal_code):
@@ -95,7 +99,12 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
         pc_store_id = request_form["pc-store-select"]
         pc_store_name = pc_store_id
     else:
-        pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+        try:
+            value = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+            # Set default store number (for whatever reason, store search can return an empty store ID)
+            pc_store_id = 1517 if value == "False" else value
+        except (KeyError, IndexError):
+            pc_store_id = d["ResultList"][0]["Attributes"][0]["AttributeId"]  # or another default value if you prefer
         pc_store_name = d["ResultList"][0]["Name"]
 
     e = products_data.search_stores_saveon(latitude, longitude)
@@ -155,7 +164,7 @@ def process_search_results(
 ):
     a = results["query_pc"]
     c = results["query_saveon"]
-
+    #print("results!\n\n", results)
     if "status" in results["query_saveon"]:
         parsed_saveon_data = "no results"
     else:
@@ -189,9 +198,7 @@ def process_search_results(
             "store_name": {
                 "pc": pc_store_name,
                 "saveon": saveon_store_name,
-                "walmart": str(walmart_store_data[0]["id"])
-                + " - "
-                + walmart_store_data[0]["displayName"],
+                "walmart": f"{walmart_store_data[0]['id']} - {walmart_store_data[0]['displayName']}",
             },
             "results": {
                 "saveon": parsed_saveon_data,
@@ -212,7 +219,6 @@ def process_search_results(
                 "walmart": walmart_store_data,
             },
         }
-
     if enable_safeway:
         search_data["results"]["safeway"] = safeway_data
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
@@ -248,11 +254,26 @@ def search():
 
     products_data.set_store_saveon(saveon_store_id)
     products_data.set_store_pc(pc_store_id)
-    products_data.set_store_walmart(walmart_store_data["id"])
 
     # Execute Walmart search only if "walmart-store-select" is in the request form
+    # if "walmart-store-select" in request.form:
+    #    functions.append(products_data.query_walmart)
+
+    # TODO: does not work when switching stores
     if "walmart-store-select" in request.form:
-        functions.append(products_data.query_walmart)
+        walmart_store_data["id"] = request.form["walmart-store-select"]
+    else:
+        walmart_store_data["id"] = str(walmart_store_data["payload"]["stores"][0]["id"])
+
+    # print(walmart_store_data["id"])
+    walmart_store_data["name"] = walmart_store_data["payload"]["stores"][0][
+        "displayName"
+    ]
+
+    products_data.set_store_walmart(walmart_store_data["id"])
+
+    # Execute Walmart search
+    functions.append(products_data.query_walmart)
 
     results = execute_search(functions)
     search_data = process_search_results(
