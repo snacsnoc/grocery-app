@@ -21,7 +21,7 @@ class ProductDataParser:
             product_info_map = {
                 "name": product_code["name"],
                 "price": product_code["prices"]["price"]["value"],
-                "quantity": product_code["prices"]["price"]["quantity"],
+                "quantity": product_code["packageSize"],
                 "unit": product_code["prices"]["price"]["unit"],
                 "unit_price": f"${unit_price}/100",
                 "image": image,
