@@ -69,7 +69,7 @@ class ProductDataParser:
         ]
         result = []
         for product_code in product_data:
-            if product_code["priceInfo"]["unitPrice"] != None:
+            if product_code["priceInfo"] != None:
                 quantity = product_code["priceInfo"]["unitPrice"]["priceString"]
             else:
                 quantity = "NA"
