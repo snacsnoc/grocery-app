@@ -69,30 +69,28 @@ class ProductDataParser:
         ]
         result = []
         for product_code in product_data:
-            if product_code["priceInfo"] != None:
-                quantity = product_code["priceInfo"]["unitPrice"]["priceString"]
-            else:
-                quantity = "NA"
+            priceInfo = product_code.get("priceInfo", {})
 
-            if product_code["priceInfo"]["currentPrice"] != None:
-                price = product_code["priceInfo"]["currentPrice"]["price"]
-            else:
-                price = "NA"
+            listPrice = priceInfo.get("listPrice")
+            quantity = listPrice.get("priceString", "NA") if listPrice else "NA"
+
+            currentPrice = priceInfo.get("currentPrice")
+            price = currentPrice.get("priceString", "NA") if currentPrice else "NA"
+
             image = "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
-            if "allImages" in product_code["imageInfo"]:
-                if (
-                    product_code["imageInfo"]["allImages"]
-                    and product_code["imageInfo"]["allImages"][0]
-                ):
-                    image = product_code["imageInfo"]["allImages"][0]["url"]
+            allImages = product_code.get("imageInfo", {}).get("allImages")
+            if allImages and allImages[0]:
+                image = allImages[0].get("url", image)
 
             product_info_map = {
-                "name": product_code["name"],
+                "name": product_code.get("name", "NA"),
                 "price": price,
                 "quantity": "NA-",
-                "unit": product_code["salesUnitType"],
+                "unit": product_code.get("salesUnitType", "NA"),
                 "unit_price": quantity,
                 "image": image,
             }
+
             result.append(product_info_map)
+
         return result
