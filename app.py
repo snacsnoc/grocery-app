@@ -78,7 +78,7 @@ def set_walmart_store_data(request_form, products_data, postal_code):
 
         walmart_store_name = [
             store["displayName"]
-            for store in walmart_store_search["payload"]["stores"]
+            for store in walmart_store_search['data']['nearByNodes']['nodes']
             if store["id"] == walmart_store_id
         ]
     else:
