@@ -82,13 +82,13 @@ def set_walmart_store_data(request_form, products_data, postal_code):
             if store["id"] == walmart_store_id
         ]
     else:
-        walmart_store_id = walmart_store_search["payload"]["stores"][0]["id"]
-        walmart_store_name = walmart_store_search["payload"]["stores"][0]["displayName"]
+        walmart_store_id = walmart_store_search['data']['nearByNodes']['nodes'][0]['id']
+        walmart_store_name =  walmart_store_search['data']['nearByNodes']['nodes'][0]["displayName"]
 
     return {
         "id": str(walmart_store_id),
         "name": walmart_store_name,
-        "payload": {"stores": walmart_store_search["payload"]["stores"]},
+        "payload": {"stores": walmart_store_search['data']['nearByNodes']['nodes']},
     }
 
 
@@ -265,7 +265,6 @@ def search():
     else:
         walmart_store_data["id"] = str(walmart_store_data["payload"]["stores"][0]["id"])
 
-    # print(walmart_store_data["id"])
     walmart_store_data["name"] = walmart_store_data["payload"]["stores"][0][
         "displayName"
     ]
