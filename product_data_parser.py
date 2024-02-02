@@ -1,81 +1,105 @@
 # https://gist.github.com/snacsnoc/a54f5055c02eaa33c4b9d772dc2c8293
+import re
 class ProductDataParser:
+    @staticmethod
+    def get_image(
+        product,
+        default_image="https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png",
+    ):
+        if product.get("imageAssets"):
+            return product["imageAssets"][0].get("smallRetinaUrl", default_image)
+        return default_image
+
+    @staticmethod
     def parse_pc_json_data(data):
-        product_data = data["results"]
-        result = []
-        for product_code in product_data:
-            if product_code["imageAssets"] != None:
-                image = product_code["imageAssets"][0]["smallRetinaUrl"]
-            else:
-                image = (
-                    "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
-                )
-            if (
-                len(product_code["prices"]["comparisonPrices"]) > 0
-                and product_code["prices"]["comparisonPrices"][0]["value"] is not None
-            ):
-                unit_price = product_code["prices"]["comparisonPrices"][0]["value"]
-            else:
-                unit_price = "NA"
-
-            product_info_map = {
-                "name": product_code["name"],
-                "price": product_code["prices"]["price"]["value"],
-                "quantity": product_code["packageSize"],
-                "unit": product_code["prices"]["price"]["unit"],
-                "unit_price": f"${unit_price}/100",
-                "image": image,
+        product_data = data.get("results", [])
+        return [
+            {
+                "name": product.get("name", "NA"),
+                "price": product.get("prices", {}).get("price", {}).get("value", "NA"),
+                "quantity": product.get("packageSize", "NA"),
+                "unit": product.get("prices", {}).get("price", {}).get("unit", "NA"),
+                "unit_price": f"${product.get('prices', {}).get('comparisonPrices', [{}])[0].get('value', 'NA')}/100",
+                "image": ProductDataParser.get_image(product),
             }
-
-            result.append(product_info_map)
-        return result
-
-    def parse_safeway_json_data(data):
-        product_data = data["entities"]["product"]
-        result = []
-        for product_id, product_info in product_data.items():
-            product_info_map = {
-                "name": product_info["name"],
-                "price": product_info["price"]["current"]["amount"],
-                "image": product_info["image"]["src"],
-                "unit_price": "NA",
-                "unit": product_info["price"]["unit"]["label"],
-            }
-            result.append(product_info_map)
-        return result
-
-    def parse_saveonfoods_json_data(data):
-        product_data = data["products"]
-        result = []
-        for product_code in product_data:
-            # This is very CPU expensive line of code
-            unit_price = (
-                product_code["priceNumeric"] / product_code["unitOfSize"]["size"]
-            ) * 100
-            product_info_map = {
-                "name": product_code["name"],
-                "price": product_code["priceNumeric"],
-                "quantity": product_code["unitOfSize"]["size"],
-                "unit": product_code["unitOfSize"]["type"],
-                "unit_price": f"${unit_price:.2f}/100",
-                "image": product_code["image"]["default"],
-            }
-            result.append(product_info_map)
-        return result
-
-    def parse_walmart_json_data(data):
-        product_data = data["data"]["search"]["searchResult"]["itemStacks"][0][
-            "itemsV2"
+            for product in product_data
         ]
+
+    @staticmethod
+    def parse_safeway_json_data(data):
+        product_data = data.get("entities", {}).get("product", {})
+        return [
+            {
+                "name": product_info.get("name", "NA"),
+                "price": product_info.get("price", {})
+                .get("current", {})
+                .get("amount", "NA"),
+                "image": product_info.get("image", {}).get(
+                    "src", ProductDataParser.get_image({})
+                ),
+                "unit_price": "NA",
+                "unit": product_info.get("price", {})
+                .get("unit", {})
+                .get("label", "NA"),
+            }
+            for product_id, product_info in product_data.items()
+        ]
+
+    @staticmethod
+    def parse_saveonfoods_json_data(data):
+        product_data = data.get("products", [])
+        return [
+            {
+                "name": product.get("name", "NA"),
+                "price": product.get("priceNumeric", "NA"),
+                "quantity": product.get("unitOfSize", {}).get("size", "NA"),
+                "unit": product.get("unitOfSize", {}).get("type", "NA"),
+                "unit_price": f"${(product.get('priceNumeric', 0) / product.get('unitOfSize', {}).get('size', 1)) * 100:.2f}/100",
+                "image": product.get("image", {}).get(
+                    "default", ProductDataParser.get_image({})
+                ),
+            }
+            for product in product_data
+        ]
+
+    @staticmethod
+    def parse_walmart_json_data(data):
+        product_data = (
+            data.get("data", {})
+            .get("search", {})
+            .get("searchResult", {})
+            .get("itemStacks", [{}])[0]
+            .get("itemsV2", [])
+        )
         result = []
         for product_code in product_data:
+            product_name = product_code.get("name"
+                                            )
+            # Skip products with no name
+            if not product_name:
+                continue
             priceInfo = product_code.get("priceInfo", {})
 
-            listPrice = priceInfo.get("listPrice")
-            quantity = listPrice.get("priceString", "NA") if listPrice else "NA"
+            #listPrice = priceInfo.get("listPrice")
+            #quantity = listPrice.get("priceString", "NA") if listPrice else "NA"
 
-            currentPrice = priceInfo.get("currentPrice")
-            price = currentPrice.get("priceString", "NA") if currentPrice else "NA"
+            current_price_dict = priceInfo.get("currentPrice")
+
+            if current_price_dict and "price" in current_price_dict:
+                price = float(current_price_dict["price"])
+                price_string = f"${price:.2f}"
+            else:
+                price = 0
+                price_string = "NA"
+
+            # Extracting weight in grams from the product name
+            weight_match = re.search(r'(\d+)\s*g', product_code.get("name", ""), re.IGNORECASE)
+            # Default to 100g if not found
+            weight_in_grams = int(weight_match.group(1)) if weight_match else 100
+
+            # Calculating unit price
+            unit_price = (price / weight_in_grams) * 100 if weight_in_grams else "NA"
+            unit_price_string = f"${unit_price:.2f}/100g" if unit_price != "NA" else "NA"
 
             image = "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
             allImages = product_code.get("imageInfo", {}).get("allImages")
@@ -83,14 +107,12 @@ class ProductDataParser:
                 image = allImages[0].get("url", image)
 
             product_info_map = {
-                "name": product_code.get("name", "NA"),
-                "price": price,
-                "quantity": "NA-",
+                "name": product_name,
+                "price": price_string,
+                "quantity": weight_in_grams,
                 "unit": product_code.get("salesUnitType", "NA"),
-                "unit_price": quantity,
+                "unit_price": unit_price_string ,
                 "image": image,
             }
-
             result.append(product_info_map)
-
         return result
