@@ -3,6 +3,7 @@ from pymemcache.client.base import Client
 import pickle
 import os
 
+
 # Lookup address (postal code in this case) with cache
 class LocationLookupC:
     def __init__(self, api_key, cache_type="pickle"):

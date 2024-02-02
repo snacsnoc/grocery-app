@@ -196,7 +196,7 @@ class SupermarketAPI:
             headers=safeway_headers,
             cookies=cookies,
         )
-        # print("The status is: %s", ra.status_code)
+
 
         return ra.json()
 
@@ -220,11 +220,11 @@ class SupermarketAPI:
         }
         walmart_cookies = {
             "WM_SEC.AUTH_TOKEN": "MTAyOTYyMDE4oeFpLM%2FwNJvkjAy2HlAgzQmTIWsXVKI%2FoZqlqV1Dqf9Jai6s%2FLNI9aqC9f3ok%2FWz2Nis9b8Sk4dfqmZOsmjGJLUryqrL2mtwAlwbzeg6Op%2FGQ0dTIhKhMrkmwUuZ0b1dj8OFN4dileb20bpDLeCIlSFd%2FHsc7bnSe4%2BTLU2zbj3Zkbpx8YoMDNJuTu17eSinZHIRb%2F84IgyD2i452XhgfNVR%2F7710J3iEuhED%2FJVEs%2Fb%2FSoGFgAYL9DGZ8K45WCXM%2FFHGZ2dCNmxWrdkwqEKrg7wKT0vbnwaJPRBhjlyKznJz6CLJcNZ0BdP3gWw0%2Fiqsh9dmtjhoLysCBgo5rHGdgRxgiRAb22Uh7m0R6YHOzMdDNIfTntJm6bUfn07FPjembNpDccY4EpsIFLxDIw6VEr1eX9YGQ0laieVMoEr348%3D",
-            "auth":"MTAyOTYyMDE4oeFpLM%2FwNJvkjAy2HlAgzQmTIWsXVKI%2FoZqlqV1Dqf9Jai6s%2FLNI9aqC9f3ok%2FWz2Nis9b8Sk4dfqmZOsmjGJLUryqrL2mtwAlwbzeg6Op%2FGQ0dTIhKhMrkmwUuZ0b1dj8OFN4dileb20bpDLeCIlSFd%2FHsc7bnSe4%2BTLU2zbj3Zkbpx8YoMDNJuTu17eSinZHIRb%2F84IgyD2i452XhgfNVR%2F7710J3iEuhED%2FJVEs%2Fb%2FSoGFgAYL9DGZ8K45WCXM%2FFHGZ2dCNmxWrdkwqEKrg7wKT0vbnwaJPRBhjlyKznJz6CLJcNZ0BdP3gWw0%2Fiqsh9dmtjhoLysCBgo5rHGdgRxgiRAb22Uh7m0R6YHOzMdDNIfTntJm6bUfn07FPjembNpDccY4EpsIFLxDIw6VEr1eX9YGQ0laieVMoEr348%3D",
-            "WM.USER_STATE":"GUEST%7CGuest",
+            "auth": "MTAyOTYyMDE4oeFpLM%2FwNJvkjAy2HlAgzQmTIWsXVKI%2FoZqlqV1Dqf9Jai6s%2FLNI9aqC9f3ok%2FWz2Nis9b8Sk4dfqmZOsmjGJLUryqrL2mtwAlwbzeg6Op%2FGQ0dTIhKhMrkmwUuZ0b1dj8OFN4dileb20bpDLeCIlSFd%2FHsc7bnSe4%2BTLU2zbj3Zkbpx8YoMDNJuTu17eSinZHIRb%2F84IgyD2i452XhgfNVR%2F7710J3iEuhED%2FJVEs%2Fb%2FSoGFgAYL9DGZ8K45WCXM%2FFHGZ2dCNmxWrdkwqEKrg7wKT0vbnwaJPRBhjlyKznJz6CLJcNZ0BdP3gWw0%2Fiqsh9dmtjhoLysCBgo5rHGdgRxgiRAb22Uh7m0R6YHOzMdDNIfTntJm6bUfn07FPjembNpDccY4EpsIFLxDIw6VEr1eX9YGQ0laieVMoEr348%3D",
+            "WM.USER_STATE": "GUEST%7CGuest",
         }
         data = {
-            "query": 'query nearByNodes( $input:LocationInput! $checkItemAvailability:Boolean! $checkWeeklyReservation:Boolean! $enableStoreSelectorMarketplacePickup:Boolean! $enableVisionStoreSelector:Boolean! $enableStorePagesAndFinderPhase2:Boolean! ){nearByNodes(input:$input){nodes{id distance type isGlassEligible displayName name marketType address{addressLineOne addressLineTwo state city postalCode country}geoPoint @skip(if:$checkItemAvailability){latitude longitude}capabilities{accessPointId accessPointType geoPoint @skip(if:$checkItemAvailability){latitude longitude}expressEnabled bagFeeDetails @skip(if:$checkItemAvailability){isBagFeeEligible bagFee{displayValue value}}isActive isTest assortmentNodeId tippingEnabled acceptsEbt isMembershipEnabled timeZone}open24Hours displayAccessTypes isNodeSelectableOnline partnerId @include(if:$enableStoreSelectorMarketplacePickup) weeklyReservationDetails @include(if:$checkWeeklyReservation){slot{startTime displayValueStartTime}id}weeklyReservationCapability @include(if:$checkWeeklyReservation){supportsWeeklyReservation}operationalHours{day start closed end}product @include(if:$checkItemAvailability){availabilityStatus}services @include(if:$enableVisionStoreSelector){name phone displayName operationalHours{day start closed end}open24Hours}tempOperationalHours @include(if:$enableStorePagesAndFinderPhase2){date start end closed name}}}}',
+            "query": "query nearByNodes( $input:LocationInput! $checkItemAvailability:Boolean! $checkWeeklyReservation:Boolean! $enableStoreSelectorMarketplacePickup:Boolean! $enableVisionStoreSelector:Boolean! $enableStorePagesAndFinderPhase2:Boolean! ){nearByNodes(input:$input){nodes{id distance type isGlassEligible displayName name marketType address{addressLineOne addressLineTwo state city postalCode country}geoPoint @skip(if:$checkItemAvailability){latitude longitude}capabilities{accessPointId accessPointType geoPoint @skip(if:$checkItemAvailability){latitude longitude}expressEnabled bagFeeDetails @skip(if:$checkItemAvailability){isBagFeeEligible bagFee{displayValue value}}isActive isTest assortmentNodeId tippingEnabled acceptsEbt isMembershipEnabled timeZone}open24Hours displayAccessTypes isNodeSelectableOnline partnerId @include(if:$enableStoreSelectorMarketplacePickup) weeklyReservationDetails @include(if:$checkWeeklyReservation){slot{startTime displayValueStartTime}id}weeklyReservationCapability @include(if:$checkWeeklyReservation){supportsWeeklyReservation}operationalHours{day start closed end}product @include(if:$checkItemAvailability){availabilityStatus}services @include(if:$enableVisionStoreSelector){name phone displayName operationalHours{day start closed end}open24Hours}tempOperationalHours @include(if:$enableStorePagesAndFinderPhase2){date start end closed name}}}}",
             "variables": {
                 "input": {
                     "postalCode": postal_code,
@@ -250,7 +250,7 @@ class SupermarketAPI:
         response = requests.post(
             self.walmart_api_url + walmart_api_search_path,
             headers=walmart_headers,
-            cookies = walmart_cookies,
+            cookies=walmart_cookies,
             data=json.dumps(data),
         )
         if response.status_code == 200:
@@ -264,7 +264,6 @@ class SupermarketAPI:
 
     # Query Walmart search by store ID
     def query_walmart(self):
-
         walmart_api_search_path = (
             "/orchestra/snb/graphql/search?query="
             + self.search_query

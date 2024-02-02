@@ -13,7 +13,9 @@ Run Flask:
 FLASK_DEBUG=True python3 -m flask run
 ```
 
-Runs on: Python 3.11, smiles
+Runs on: 
+* Python 3.11 
+* smiles
 
 Implementation:
 Taking the user's search query, the grocer's individual search API is called. To speed up sending requests, the requests are made in parallel. 
