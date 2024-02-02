@@ -28,22 +28,45 @@ class ProductDataParser:
     @staticmethod
     def parse_safeway_json_data(data):
         product_data = data.get("entities", {}).get("product", {})
-        return [
-            {
-                "name": product_info.get("name", "NA"),
-                "price": product_info.get("price", {})
-                .get("current", {})
-                .get("amount", "NA"),
-                "image": product_info.get("image", {}).get(
-                    "src", ProductDataParser.get_image({})
-                ),
-                "unit_price": "NA",
-                "unit": product_info.get("price", {})
-                .get("unit", {})
-                .get("label", "NA"),
+        result = []
+        for product_id, product_info in product_data.items():
+            name = product_info.get("name", "NA")
+            price_dict = product_info.get("price", {}).get("current", {})
+            price = price_dict.get("amount", "0")
+
+            # Convert price to float and format as a string
+            try:
+                price_float = float(price)
+                price_string = f"${price_float:.2f}"
+            except ValueError:
+                price_string = "NA"
+
+            # Extract weight in grams from the product name
+            weight_match = re.search(r'(\d+)\s*g', name, re.IGNORECASE)
+            weight_in_grams = int(weight_match.group(1)) if weight_match else None
+
+            # Calculate unit price per 100 grams
+            if weight_in_grams:
+                unit_price = (price_float / weight_in_grams) * 100
+                unit_price_string = f"${unit_price:.2f}/100g"
+            else:
+                unit_price_string = "NA"
+
+            image = product_info.get("image", {}).get(
+                "src", ProductDataParser.get_image({})
+            )
+
+            product_info_map = {
+                "name": name,
+                "price": price_string,
+                "image": image,
+                "quantity": weight_in_grams,
+                "unit_price": unit_price_string,
+                "unit": product_info.get("price", {}).get("unit", {}).get("label", "NA"),
             }
-            for product_id, product_info in product_data.items()
-        ]
+            result.append(product_info_map)
+
+        return result
 
     @staticmethod
     def parse_saveonfoods_json_data(data):
