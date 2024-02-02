@@ -53,97 +53,113 @@
         </div>
 
         <script type="application/javascript">
-    const response = {
-   "search_results": [
-       {% for store, results in result_data['results'].items() %}
-    {% for data in results %}
-     {% if data['unit'] and data['name'] and data['image'] %}
-    {"Store":"{{ store }}",
-    "Price":"{{ data['price'] }}",
-    "Unit": "{{ data['unit'] }}",
-    "UnitPrice": "{{ data['unit_price'] }}",
-    "Quantity": "{{ data['quantity'] }}",
-    "Name":"{{ data['name'] }}",
-    "Image":"<img height=50px width=50px src={{ data['image'] }}>"
-    },
-    {% endif %}
-    {% endfor %}
-    {% endfor %}
-   ]
-}
+            const response = {
+                "search_results": [
+                    {% for store, results in result_data['results'].items() %}
+            {% for data in results %}
+            {% if data['unit'] and data['name'] and data['image'] %}
+            {
+                "Store"
+            :
+                "{{ store }}",
+                    "Price"
+            :
+                "{{ data['price'] }}",
+                    "Unit"
+            :
+                "{{ data['unit'] }}",
+                    "UnitPrice"
+            :
+                "{{ data['unit_price'] }}",
+                    "Quantity"
+            :
+                "{{ data['quantity'] }}",
+                    "Name"
+            :
+                "{{ data['name'] }}",
+                    "Image"
+            :
+                "<img height=50px width=50px src={{ data['image'] }}>"
+            }
+            ,
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+            ]
+            }
 
-const tableContent = document.getElementById("table-content")
-const tableButtons = document.querySelectorAll("th button");
+            const tableContent = document.getElementById("table-content")
+            const tableButtons = document.querySelectorAll("th button");
 
-const createRow = (obj) => {
-  const row = document.createElement("tr");
-  const objKeys = Object.keys(obj);
-  objKeys.map((key) => {
-    const cell = document.createElement("td");
-    cell.setAttribute("data-attr", key);
-    cell.innerHTML = obj[key];
-    row.appendChild(cell);
-  });
-  return row;
-};
+            const createRow = (obj) => {
+                const row = document.createElement("tr");
+                const objKeys = Object.keys(obj);
+                objKeys.map((key) => {
+                    const cell = document.createElement("td");
+                    cell.setAttribute("data-attr", key);
+                    cell.innerHTML = obj[key];
+                    row.appendChild(cell);
+                });
+                return row;
+            };
 
-const getTableContent = (data) => {
-  data.map((obj) => {
-    const row = createRow(obj);
-    tableContent.appendChild(row);
-  });
-};
+            const getTableContent = (data) => {
+                data.map((obj) => {
+                    const row = createRow(obj);
+                    tableContent.appendChild(row);
+                });
+            };
 
-const sortData = (data, param, direction = "asc") => {
-  tableContent.innerHTML = '';
-  const sortedData =
-    direction == "asc"
-      ? [...data].sort(function (a, b) {
-          if (a[param] < b[param]) {
-            return -1;
-          }
-          if (a[param] > b[param]) {
-            return 1;
-          }
-          return 0;
-        })
-      : [...data].sort(function (a, b) {
-          if (b[param] < a[param]) {
-            return -1;
-          }
-          if (b[param] > a[param]) {
-            return 1;
-          }
-          return 0;
-        });
+            const sortData = (data, param, direction = "asc") => {
+                tableContent.innerHTML = '';
+                const sortedData =
+                    direction == "asc"
+                        ? [...data].sort(function (a, b) {
+                            if (a[param] < b[param]) {
+                                return -1;
+                            }
+                            if (a[param] > b[param]) {
+                                return 1;
+                            }
+                            return 0;
+                        })
+                        : [...data].sort(function (a, b) {
+                            if (b[param] < a[param]) {
+                                return -1;
+                            }
+                            if (b[param] > a[param]) {
+                                return 1;
+                            }
+                            return 0;
+                        });
 
-  getTableContent(sortedData);
-};
+                getTableContent(sortedData);
+            };
 
-const resetButtons = (event) => {
-  [...tableButtons].map((button) => {
-    if (button !== event.target) {
-      button.removeAttribute("data-dir");
-    }
-  });
-};
+            const resetButtons = (event) => {
+                [...tableButtons].map((button) => {
+                    if (button !== event.target) {
+                        button.removeAttribute("data-dir");
+                    }
+                });
+            };
 
-window.addEventListener("load", () => {
-  getTableContent(response.search_results);
+            window.addEventListener("load", () => {
+                getTableContent(response.search_results);
 
-  [...tableButtons].map((button) => {
-    button.addEventListener("click", (e) => {
-      resetButtons(e);
-      if (e.target.getAttribute("data-dir") == "desc") {
-        sortData(response.search_results, e.target.id, "desc");
-        e.target.setAttribute("data-dir", "asc");
-      } else {
-        sortData(response.search_results, e.target.id, "asc");
-        e.target.setAttribute("data-dir", "desc");
-      }
-    });
-  });
-});
+                [...tableButtons].map((button) => {
+                    button.addEventListener("click", (e) => {
+                        resetButtons(e);
+                        if (e.target.getAttribute("data-dir") == "desc") {
+                            sortData(response.search_results, e.target.id, "desc");
+                            e.target.setAttribute("data-dir", "asc");
+                        } else {
+                            sortData(response.search_results, e.target.id, "asc");
+                            e.target.setAttribute("data-dir", "desc");
+                        }
+                    });
+                });
+            });
 
 
         </script>
@@ -158,7 +174,7 @@ window.addEventListener("load", () => {
                 <select class="form-control" id="walmart-store-select" name="walmart-store-select">
                     {% for store_name in result_data['store_locations']['walmart'] %}
                     <option value="{{store_name['id']}}">
-                        {{ store_name['displayName'] }} - {{ store_name['address1'] }}
+                        {{ store_name['displayName'] }} - {{ store_name['address']['address1'] }}
                     </option>
                     {% endfor %}
                 </select>
