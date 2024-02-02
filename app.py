@@ -10,8 +10,8 @@ app.config.from_object(Config)
 configure_routes(app)
 configure_error_handlers(app)
 
-if not os.path.exists(app.config['CACHE_DIR']):
-    os.makedirs(app.config['CACHE_DIR'])
+if not os.path.exists(app.config["CACHE_DIR"]):
+    os.makedirs(app.config["CACHE_DIR"])
 
 # Run the app
 if __name__ == "__main__":

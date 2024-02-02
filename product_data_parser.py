@@ -1,5 +1,7 @@
 # https://gist.github.com/snacsnoc/a54f5055c02eaa33c4b9d772dc2c8293
 import re
+
+
 class ProductDataParser:
     @staticmethod
     def get_image(
@@ -42,7 +44,7 @@ class ProductDataParser:
                 price_string = "NA"
 
             # Extract weight in grams from the product name
-            weight_match = re.search(r'(\d+)\s*g', name, re.IGNORECASE)
+            weight_match = re.search(r"(\d+)\s*g", name, re.IGNORECASE)
             weight_in_grams = int(weight_match.group(1)) if weight_match else None
 
             # Calculate unit price per 100 grams
@@ -62,7 +64,9 @@ class ProductDataParser:
                 "image": image,
                 "quantity": weight_in_grams,
                 "unit_price": unit_price_string,
-                "unit": product_info.get("price", {}).get("unit", {}).get("label", "NA"),
+                "unit": product_info.get("price", {})
+                .get("unit", {})
+                .get("label", "NA"),
             }
             result.append(product_info_map)
 
@@ -96,15 +100,14 @@ class ProductDataParser:
         )
         result = []
         for product_code in product_data:
-            product_name = product_code.get("name"
-                                            )
+            product_name = product_code.get("name")
             # Skip products with no name
             if not product_name:
                 continue
             priceInfo = product_code.get("priceInfo", {})
 
-            #listPrice = priceInfo.get("listPrice")
-            #quantity = listPrice.get("priceString", "NA") if listPrice else "NA"
+            # listPrice = priceInfo.get("listPrice")
+            # quantity = listPrice.get("priceString", "NA") if listPrice else "NA"
 
             current_price_dict = priceInfo.get("currentPrice")
 
@@ -116,13 +119,17 @@ class ProductDataParser:
                 price_string = "NA"
 
             # Extracting weight in grams from the product name
-            weight_match = re.search(r'(\d+)\s*g', product_code.get("name", ""), re.IGNORECASE)
+            weight_match = re.search(
+                r"(\d+)\s*g", product_code.get("name", ""), re.IGNORECASE
+            )
             # Default to 100g if not found
             weight_in_grams = int(weight_match.group(1)) if weight_match else 100
 
             # Calculating unit price
             unit_price = (price / weight_in_grams) * 100 if weight_in_grams else "NA"
-            unit_price_string = f"${unit_price:.2f}/100g" if unit_price != "NA" else "NA"
+            unit_price_string = (
+                f"${unit_price:.2f}/100g" if unit_price != "NA" else "NA"
+            )
 
             image = "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
             allImages = product_code.get("imageInfo", {}).get("allImages")
@@ -134,7 +141,7 @@ class ProductDataParser:
                 "price": price_string,
                 "quantity": weight_in_grams,
                 "unit": product_code.get("salesUnitType", "NA"),
-                "unit_price": unit_price_string ,
+                "unit_price": unit_price_string,
                 "image": image,
             }
             result.append(product_info_map)

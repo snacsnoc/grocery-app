@@ -1,8 +1,8 @@
 # error_handlers.py
 from flask import render_template, redirect, url_for
 
-def configure_error_handlers(app):
 
+def configure_error_handlers(app):
     @app.errorhandler(400)
     def bad_request(error):
         return redirect(url_for("index"))

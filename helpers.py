@@ -24,6 +24,7 @@ def validate_request_form(request_form):
 
     return query, postal_code, enable_safeway
 
+
 def get_geo_coords(postal_code):
     if postal_code is None:
         raise Exception("Postal code is required")
@@ -33,7 +34,9 @@ def get_geo_coords(postal_code):
         latitude = "49.420"
     else:
         try:
-            postal_lookup = LocationLookupC(current_app.config['OPENCAGE_API_KEY'], cache_type="pickle")
+            postal_lookup = LocationLookupC(
+                current_app.config["OPENCAGE_API_KEY"], cache_type="pickle"
+            )
             longitude, latitude, formatted_address = postal_lookup.lookup_coords(
                 postal_code
             )
@@ -45,6 +48,7 @@ def get_geo_coords(postal_code):
         raise Exception("No geo coords!")
 
     return longitude, latitude, formatted_address
+
 
 def execute_search(functions):
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -61,6 +65,7 @@ def execute_search(functions):
                 results[func.__name__] = result
 
     return results
+
 
 def process_search_results(
     results,
@@ -105,7 +110,7 @@ def process_search_results(
         search_data = {
             "error": "No results",
             "coords": {"latitude": latitude, "longitude": longitude},
-            "debug_mode": current_app.config['DEBUG'],
+            "debug_mode": current_app.config["DEBUG"],
         }
     else:
         search_data = {
@@ -126,7 +131,7 @@ def process_search_results(
                 "postal_code": postal_code,
                 "formatted_address": formatted_address,
             },
-            "debug_mode": current_app.config['DEBUG'],
+            "debug_mode": current_app.config["DEBUG"],
             "enable_safeway": enable_safeway,
             "store_locations": {
                 "pc": pc_store_data["ResultList"],
@@ -139,6 +144,7 @@ def process_search_results(
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
 
     return search_data
+
 
 def set_store_ids(request_form, products_data, latitude, longitude, postal_code):
     d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
@@ -177,6 +183,8 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
         d,
         e,
     )
+
+
 def set_walmart_store_data(request_form, products_data, postal_code):
     walmart_store_search = products_data.search_stores_walmart(postal_code)
 

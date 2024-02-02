@@ -197,7 +197,6 @@ class SupermarketAPI:
             cookies=cookies,
         )
 
-
         return ra.json()
 
     def search_stores_walmart(self, postal_code):
