@@ -5,27 +5,32 @@ This document serves to document the web architecture of popular Canadian grocer
 After attacks on their member point system in 2019, President's Choice rebuilt their public API endpoint with added security (basic authentication hah).
 Subsidiary websites and the mobile app query the same endpoint, and is used from querying products to user authentication.
 
-Endpoint: `api.pcexpress.ca`
-Versioned API
-Brand selector: superstore, rass (Atlantic), nofrills, independent
+__Endpoint:__ `api.pcexpress.ca`
 
-We can use the same endpoint to query Shoppers Drug Mart (sdm), and all other brands, by using the store id handle.
+__Versioned API__
+
+__Brand selector:__ `superstore`, `rass` (Atlantic), `nofrills`, `independent`
+
+We can use the same endpoint to query Shoppers Drug Mart (`sdm`), and all other brands, by using the store id handle.
 
 `realcanadiansuperstore.ca` allows users to set their location and schedule grocery pick up. [The page](https://www.realcanadiansuperstore.ca/store-locator?type=store) uses an embedded Google Map to display store locations. 
 
 
 The PC Optimum mobile app queries a 3rd party service, Bullseye Locations, to display store locations. With the public API key, we are able to query locations:
 
-Endpoint: `ws2.bullseyelocations.com/RestSearch.svc/DoSearch2`
-URL params:
+__Endpoint:__ `ws2.bullseyelocations.com/RestSearch.svc/DoSearch2`
+
+__URL params:__
 `&CategoryIds=93204%2C93252`
-93204 = Superstore
-93252 = Independant Grocery, Shoppers Drugmart, ??? unknown others
+
+`93204` = Superstore
+
+`93252` = Independant Grocery, Shoppers Drugmart, ??? unknown others
 
 # Save-On-Foods 
 Save-On-Foods started offering an online grocery pickup service around late 2019/2020
 
-Endpoint: `storefrontgateway.saveonfoods.com/api`
+__Endpoint:__ `storefrontgateway.saveonfoods.com/api`
 
 To query stores we can send a GET request to: `https://storefrontgateway.saveonfoods.com/api/near/LATITUDE/LONGITUDE/STORERADIO/30/stores?shoppingModeId=11111111-1111-1111-1111-111111111111`
 
@@ -37,8 +42,9 @@ Result: https://gist.github.com/snacsnoc/ee0c2f3595ec652e1e282ec2ca8037a1
 Safeway is just starting with online grocery ordering, as their service is only available in the Greater Toronto Area, the Greater Montreal Area, Ottawa, and Quebec City.
 There is only one API endpoint, with no location selection (national pricing?)
 
-Endpoint: `voila.ca/api`
-Versioned API
+__Endpoint:__ `voila.ca/api`
+
+__Versioned API__
 
 GET request for suggested grocery items:
 ```commandline
@@ -55,9 +61,9 @@ Result:
 # Walmart
 Walmart has a REST API for web just like the previous grocers and not much surprise here.
 Unfortunately the devs at Walmart are smart enough to add anti-bot measures to reduce automated requests (aka this project...)
+This project has been running successfully for 1yr+ so it's safe to say this API can be hit without being....blocked.
 
-
-Endpoint: `walmart.ca/api`
+__Endpoint:__ `walmart.ca/api`
 
 Searching for stores given a postal code or address is done like so:
 ```commandline
@@ -71,15 +77,16 @@ Result: https://gist.github.com/snacsnoc/ea71174078ed983122847a1e9389903c
 
 Jumping into the mobile app, we can see that they are actually sending a GraphQL request. This allows searching to be much more powerful.
 
-Endpoint: `walmart.ca/orchestra/snb/graphql/search`
-URL params:
+__Endpoint:__ `walmart.ca/orchestra/snb/graphql/search`
+
+__URL params:__
 ```commandline
 ?query=carrots&page=1&displayGuidedNav=true&additionalQueryParams=%7BisMoreOptionsTileEnabled%3Dtrue%7D
 ```
 Result: https://gist.github.com/snacsnoc/c8d09bd8b4811fef899899849925d9bb
 
 You can search by lat/long + postal code or by store ID by setting the appropriate cookies.
-```python
+```json
 {
             "deliveryCatchment": self.walmart_store_number,
             "walmart.nearestPostalCode": "V4G1N4",
