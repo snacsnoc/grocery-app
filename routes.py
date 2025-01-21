@@ -134,7 +134,7 @@ def configure_routes(app):
             walmart_store_data["id"] = request.form["walmart-store-select"]
         else:
             walmart_store_data["id"] = str(
-                walmart_store_data["payload"]["stores"][0]["id"]
+                walmart_store_data["payload"]["stores"][0]["nodeId"]
             )
 
         walmart_store_data["name"] = walmart_store_data["payload"]["stores"][0][
