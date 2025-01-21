@@ -174,7 +174,7 @@
                 <select class="form-control" id="walmart-store-select" name="walmart-store-select">
                     {% for store_name in result_data['store_locations']['walmart'] %}
                     <option value="{{store_name['id']}}">
-                        {{ store_name['displayName'] }} - {{ store_name['address']['address1'] }}
+                        {{ store_name['displayName'] }} - {{ store_name['addressLineOne'] }}
                     </option>
                     {% endfor %}
                 </select>
