@@ -118,7 +118,7 @@ def process_search_results(
             "store_name": {
                 "pc": pc_store_name,
                 "saveon": saveon_store_name,
-                "walmart": f"{walmart_store_data[0]['id']} - {walmart_store_data[0]['displayName']}",
+                "walmart": f"{walmart_store_data[0]['nodeId']} - {walmart_store_data[0]['displayName']}",
             },
             "results": {
                 "saveon": parsed_saveon_data,
@@ -186,24 +186,38 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
 
 
 def set_walmart_store_data(request_form, products_data, postal_code):
+
     walmart_store_search = products_data.search_stores_walmart(postal_code)
 
+    if not walmart_store_search or "data" not in walmart_store_search:
+        raise ValueError("Invalid Walmart store search response")
+
+    location_data = walmart_store_search["data"].get("location", {})
+    pickup_node = location_data.get("pickupNode")
+
+    if not pickup_node:
+        raise ValueError("No pickup nodes found in the Walmart store search response")
+
+    if isinstance(pickup_node, dict):
+        pickup_node = [pickup_node]
+
+    # Check if a store is selected in the form
     if "walmart-store-select" in request_form:
         walmart_store_id = request_form["walmart-store-select"]
 
-        walmart_store_name = [
-            store["displayName"]
-            for store in walmart_store_search["data"]["nearByNodes"]["nodes"]
-            if store["id"] == walmart_store_id
-        ]
+        # Find the store by ID in the list of pickup nodes
+        walmart_store_name = next(
+            (store["displayName"] for store in pickup_node if store["nodeId"] == walmart_store_id),
+            "Unknown Store",
+        )
     else:
-        walmart_store_id = walmart_store_search["data"]["nearByNodes"]["nodes"][0]["id"]
-        walmart_store_name = walmart_store_search["data"]["nearByNodes"]["nodes"][0][
-            "displayName"
-        ]
+        # Default to the first pickup node
+        walmart_store_id = pickup_node[0]["nodeId"]
+        walmart_store_name = pickup_node[0]["displayName"]
+
 
     return {
         "id": str(walmart_store_id),
         "name": walmart_store_name,
-        "payload": {"stores": walmart_store_search["data"]["nearByNodes"]["nodes"]},
+        "payload": {"stores": pickup_node},
     }
