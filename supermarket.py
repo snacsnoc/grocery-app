@@ -200,58 +200,83 @@ class SupermarketAPI:
         return ra.json()
 
     def search_stores_walmart(self, postal_code):
-        walmart_api_search_path = "/orchestra/graphql"
+        walmart_api_search_path = "/orchestra/aroundme/graphql"
         walmart_headers = {
             "accept": "application/json",
             "content-type": "application/json",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-            "x-o-bu": "WALMART-CA",
-            "X-Apollo-Operation-Name": "nearByNodes",
+            "user-agent": "WMT1H-CA/24.42.1 iOS/18.2.1",
+            "X-Px-Authorization": "1", # This is important
+            "X-O-Bu": "WALMART-CA",
+            "X-Apollo-Operation-Name": "location",
             "X-Enable-Server-Timing": "1",
             "X-Latency-Trace": "1",
             "X-O-Ccm": "server",
-            "X-O-Correlation-Id": "E5XZZyJMjZHltxsIaeS8a9UhZykSy7GiVrPZ",
-            "X-O-Gql-Query": "query nearByNodes",
             "X-O-Mart": "B2C",
-            "X-O-Platform": "rweb",
-            "X-O-Platform-Version": "main-1.73.1-dec75c5-0929T0659",
+            "X-O-Platform": "ios",
+            "X-O-Platform-Version": "main-1.120.2-b35f1d1-0116T0904",
+            "X-Px-Mobile-Sdk-Version": "3.1.4",
             "X-O-Segment": "oaoh",
+            "X-Px-Os-Version": "18.2.1",
+            "X-Px-Os": "iOS",
+            "X-O-Device": "iPhone13,2",
+            "X-Wm-Client-Name": "glass",
+            "WM_MP": "true",
+            "X-Px-Hello": "A1ADAAEACwMeVwRXBx4CAlZVHlECAAEeVVUBAQMLBgZVBAAA",
+            "X-O-Device-Id": "32150DAB-C1BB-4B64-9646-29593A3FDE86", # This is also important
+            "X-Px-Uuid": "0c032380-d7d4-11ef-b132-ff220855f733",
+            "X-Wm-Vid": "62E7E52A-8C33-4E14-810B-46225509222E",
         }
-        walmart_cookies = {
-            "WM_SEC.AUTH_TOKEN": "MTAyOTYyMDE4oeFpLM%2FwNJvkjAy2HlAgzQmTIWsXVKI%2FoZqlqV1Dqf9Jai6s%2FLNI9aqC9f3ok%2FWz2Nis9b8Sk4dfqmZOsmjGJLUryqrL2mtwAlwbzeg6Op%2FGQ0dTIhKhMrkmwUuZ0b1dj8OFN4dileb20bpDLeCIlSFd%2FHsc7bnSe4%2BTLU2zbj3Zkbpx8YoMDNJuTu17eSinZHIRb%2F84IgyD2i452XhgfNVR%2F7710J3iEuhED%2FJVEs%2Fb%2FSoGFgAYL9DGZ8K45WCXM%2FFHGZ2dCNmxWrdkwqEKrg7wKT0vbnwaJPRBhjlyKznJz6CLJcNZ0BdP3gWw0%2Fiqsh9dmtjhoLysCBgo5rHGdgRxgiRAb22Uh7m0R6YHOzMdDNIfTntJm6bUfn07FPjembNpDccY4EpsIFLxDIw6VEr1eX9YGQ0laieVMoEr348%3D",
-            "auth": "MTAyOTYyMDE4oeFpLM%2FwNJvkjAy2HlAgzQmTIWsXVKI%2FoZqlqV1Dqf9Jai6s%2FLNI9aqC9f3ok%2FWz2Nis9b8Sk4dfqmZOsmjGJLUryqrL2mtwAlwbzeg6Op%2FGQ0dTIhKhMrkmwUuZ0b1dj8OFN4dileb20bpDLeCIlSFd%2FHsc7bnSe4%2BTLU2zbj3Zkbpx8YoMDNJuTu17eSinZHIRb%2F84IgyD2i452XhgfNVR%2F7710J3iEuhED%2FJVEs%2Fb%2FSoGFgAYL9DGZ8K45WCXM%2FFHGZ2dCNmxWrdkwqEKrg7wKT0vbnwaJPRBhjlyKznJz6CLJcNZ0BdP3gWw0%2Fiqsh9dmtjhoLysCBgo5rHGdgRxgiRAb22Uh7m0R6YHOzMdDNIfTntJm6bUfn07FPjembNpDccY4EpsIFLxDIw6VEr1eX9YGQ0laieVMoEr348%3D",
-            "WM.USER_STATE": "GUEST%7CGuest",
-        }
+
         data = {
-            "query": "query nearByNodes( $input:LocationInput! $checkItemAvailability:Boolean! $checkWeeklyReservation:Boolean! $enableStoreSelectorMarketplacePickup:Boolean! $enableVisionStoreSelector:Boolean! $enableStorePagesAndFinderPhase2:Boolean! ){nearByNodes(input:$input){nodes{id distance type isGlassEligible displayName name marketType address{addressLineOne addressLineTwo state city postalCode country}geoPoint @skip(if:$checkItemAvailability){latitude longitude}capabilities{accessPointId accessPointType geoPoint @skip(if:$checkItemAvailability){latitude longitude}expressEnabled bagFeeDetails @skip(if:$checkItemAvailability){isBagFeeEligible bagFee{displayValue value}}isActive isTest assortmentNodeId tippingEnabled acceptsEbt isMembershipEnabled timeZone}open24Hours displayAccessTypes isNodeSelectableOnline partnerId @include(if:$enableStoreSelectorMarketplacePickup) weeklyReservationDetails @include(if:$checkWeeklyReservation){slot{startTime displayValueStartTime}id}weeklyReservationCapability @include(if:$checkWeeklyReservation){supportsWeeklyReservation}operationalHours{day start closed end}product @include(if:$checkItemAvailability){availabilityStatus}services @include(if:$enableVisionStoreSelector){name phone displayName operationalHours{day start closed end}open24Hours}tempOperationalHours @include(if:$enableStorePagesAndFinderPhase2){date start end closed name}}}}",
+            "operationName": "location",
+            "query": """
+            query location($input: LocationInput!) {
+              location(input: $input) {
+                __typename
+                errors {
+                  __typename
+                  code
+                  message
+                }
+                status
+                nodeId
+                postalCode
+                pickupNode {
+                  __typename
+                  nodeId
+                  hubNodeId
+                  accessType
+                  accessPointId
+                  displayName
+                  addressLineOne
+                  city
+                  stateOrProvinceCode
+                  postalCode
+                }
+                shippingAddress {
+                  __typename
+                  addressId
+                  addressLineOne
+                  addressLineTwo
+                  city
+                  stateOrProvinceCode
+                  postalCode
+                }
+              }
+            }""",
             "variables": {
                 "input": {
-                    "postalCode": postal_code,
-                    "accessTypes": [
-                        "PICKUP_INSTORE",
-                        "PICKUP_CURBSIDE",
-                        "PICKUP_SPOKE",
-                        "PICKUP_POPUP",
-                    ],
-                    "nodeTypes": ["STORE", "PICKUP_SPOKE", "PICKUP_POPUP"],
-                    "latitude": None,
-                    "longitude": None,
-                    "radius": None,
-                },
-                "checkItemAvailability": False,
-                "checkWeeklyReservation": False,
-                "enableStoreSelectorMarketplacePickup": False,
-                "enableVisionStoreSelector": False,
-                "enableStorePagesAndFinderPhase2": False,
-            },
+                    "postalCode": postal_code
+                }
+            }
         }
 
         response = requests.post(
             self.walmart_api_url + walmart_api_search_path,
             headers=walmart_headers,
-            cookies=walmart_cookies,
             data=json.dumps(data),
         )
+
         if response.status_code == 200:
             return response.json()
         else:
