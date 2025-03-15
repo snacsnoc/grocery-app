@@ -78,15 +78,13 @@ def configure_routes(app):
             functions.append(lambda: products_data.query_walmart(session))
 
             results = await async_execute_search(functions, session)
+            location = [latitude, longitude, postal_code, formatted_address]
             search_data = process_search_results(
                 results,
                 query,
                 enable_safeway,
                 parser,
-                latitude,
-                longitude,
-                postal_code,
-                formatted_address,
+                location,
                 pc_store_name,
                 saveon_store_name,
                 walmart_store_data["payload"]["stores"],
@@ -130,35 +128,45 @@ def configure_routes(app):
         #    functions.append(products_data.query_walmart)
 
         # TODO: does not work when switching stores
-        if "walmart-store-select" in request.form:
-            walmart_store_data["id"] = request.form["walmart-store-select"]
-        else:
-            walmart_store_data["id"] = str(
-                walmart_store_data["payload"]["stores"][0]["nodeId"]
+        try:
+            if "walmart-store-select" in request.form:
+                walmart_store_data["id"] = request.form["walmart-store-select"]
+            else:
+                walmart_store_data["id"] = str(
+                    walmart_store_data.get("payload", {})
+                    .get("stores", [{}])[0]
+                    .get("nodeId", "Unavailable")
+                )
+
+            walmart_store_data["name"] = (
+                walmart_store_data.get("payload", {})
+                .get("stores", [{}])[0]
+                .get("displayName", "Unknown Store")
             )
 
-        walmart_store_data["name"] = walmart_store_data["payload"]["stores"][0][
-            "displayName"
-        ]
+            # Execute Walmart search
+            products_data.set_store_walmart(walmart_store_data["id"])
 
-        products_data.set_store_walmart(walmart_store_data["id"])
+            functions.append(products_data.query_walmart)
 
-        # Execute Walmart search
-        functions.append(products_data.query_walmart)
+        except (KeyError, IndexError, TypeError) as e:
+            walmart_store_data["id"] = "Unavailable"
+            walmart_store_data["name"] = "Unknown Store"
+            walmart_store_data["payload"] = {"stores": []}
+
+        walmart_stores = walmart_store_data.get("payload", {}).get("stores", [])
 
         results = execute_search(functions)
+        location = [latitude, longitude, postal_code, formatted_address]
         search_data = process_search_results(
             results,
             query,
             enable_safeway,
             parser,
-            latitude,
-            longitude,
-            postal_code,
-            formatted_address,
+            location,
             pc_store_name,
             saveon_store_name,
-            walmart_store_data["payload"]["stores"],
+            walmart_stores,
             d,
             e,
         )

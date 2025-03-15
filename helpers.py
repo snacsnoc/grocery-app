@@ -72,19 +72,17 @@ def process_search_results(
     query,
     enable_safeway,
     parser,
-    latitude,
-    longitude,
-    postal_code,
-    formatted_address,
+    location,
     pc_store_name,
     saveon_store_name,
     walmart_store_data,
     pc_store_data,
     saveon_store_data,
 ):
+    latitude, longitude, postal_code, formatted_address = location
     a = results["query_pc"]
     c = results["query_saveon"]
-    # print("results!\n\n", results)
+
     if "status" in results["query_saveon"]:
         parsed_saveon_data = "no results"
     else:
@@ -103,6 +101,11 @@ def process_search_results(
         walmart_data_parsed = (
             parser.parse_walmart_json_data(f) if f is not None else None
         )
+        if isinstance(walmart_store_data, list) and walmart_store_data:
+            walmart_store_entry = walmart_store_data[0]
+            walmart_store_name = f"{walmart_store_entry.get('nodeId', 'Unknown')} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
+        else:
+            walmart_store_name = "Unavailable"
     else:
         walmart_data_parsed = {"none": False}
 
@@ -118,7 +121,7 @@ def process_search_results(
             "store_name": {
                 "pc": pc_store_name,
                 "saveon": saveon_store_name,
-                "walmart": f"{walmart_store_data[0]['nodeId']} - {walmart_store_data[0]['displayName']}",
+                "walmart": walmart_store_name,
             },
             "results": {
                 "saveon": parsed_saveon_data,
@@ -169,10 +172,16 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
     else:
         saveon_store_id = e["items"][0]["retailerStoreId"] if e["items"] else False
         saveon_store_name = e["items"][0]["name"] if e["items"] else False
+    try:
+        walmart_store_data = set_walmart_store_data(
+            request_form, products_data, postal_code
+        )
+    except Exception as err:
+        walmart_store_data = {"id": None, "name": "Unavailable", "payload": {}}
 
-    walmart_store_data = set_walmart_store_data(
-        request_form, products_data, postal_code
-    )
+    # walmart_store_data = set_walmart_store_data(
+    #     request_form, products_data, postal_code
+    # )
 
     return (
         pc_store_id,
@@ -207,14 +216,17 @@ def set_walmart_store_data(request_form, products_data, postal_code):
 
         # Find the store by ID in the list of pickup nodes
         walmart_store_name = next(
-            (store["displayName"] for store in pickup_node if store["nodeId"] == walmart_store_id),
+            (
+                store["displayName"]
+                for store in pickup_node
+                if store["nodeId"] == walmart_store_id
+            ),
             "Unknown Store",
         )
     else:
         # Default to the first pickup node
         walmart_store_id = pickup_node[0]["nodeId"]
         walmart_store_name = pickup_node[0]["displayName"]
-
 
     return {
         "id": str(walmart_store_id),
