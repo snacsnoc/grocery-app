@@ -75,15 +75,27 @@ class ProductDataParser:
     @staticmethod
     def parse_saveonfoods_json_data(data):
         product_data = data.get("products", [])
+
         return [
             {
                 "name": product.get("name", "NA"),
                 "price": product.get("priceNumeric", "NA"),
                 "quantity": product.get("unitOfSize", {}).get("size", "NA"),
                 "unit": product.get("unitOfSize", {}).get("type", "NA"),
-                "unit_price": f"${(product.get('priceNumeric', 0) / product.get('unitOfSize', {}).get('size', 1)) * 100:.2f}/100",
+                "unit_of_measure": product.get("unitOfMeasure", {}).get("type", "NA"),
+                "unit_price": (
+                    product.get("pricePerUnit", "NA")
+                    if product.get("pricePerUnit")
+                    else f"${(product.get('priceNumeric', 0) / max(product.get('unitOfMeasure', {}).get('size', 1), 1)):.2f}/100"
+                ),
                 "image": product.get("image", {}).get(
                     "default", ProductDataParser.get_image({})
+                ),
+                "made_in_canada": product.get("attributes", {}).get(
+                    "made in Canada", False
+                ),
+                "product_of_canada": product.get("attributes", {}).get(
+                    "product of Canada", False
                 ),
             }
             for product in product_data
