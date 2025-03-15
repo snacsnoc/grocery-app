@@ -9,9 +9,6 @@ from helpers import (
 )
 from services import SupermarketAPI, ProductDataParser
 
-import asyncio
-from aiohttp import ClientSession
-
 
 async def async_execute_search(functions, session):
     results = {}
@@ -30,69 +27,6 @@ def configure_routes(app):
         return render_template(
             "index.html", result_data={"debug_mode": app.config["DEBUG"]}
         )
-
-    @app.route("/asearch", methods=("GET", "POST"))
-    async def asearch():
-        query, postal_code, enable_safeway = validate_request_form(request.form)
-
-        products_data = SupermarketAPI(query)
-        parser = ProductDataParser()
-
-        async with ClientSession() as session:
-            functions = [
-                lambda: products_data.query_saveon(session),
-                lambda: products_data.query_pc(session),
-            ]
-
-            if enable_safeway:
-                functions.append(lambda: products_data.query_safeway(session))
-
-            longitude, latitude, formatted_address = get_geo_coords(postal_code)
-            (
-                pc_store_id,
-                pc_store_name,
-                saveon_store_id,
-                saveon_store_name,
-                walmart_store_data,
-                d,
-                e,
-            ) = set_store_ids(
-                request.form, products_data, latitude, longitude, postal_code
-            )
-
-            products_data.set_store_saveon(saveon_store_id)
-            products_data.set_store_pc(pc_store_id)
-
-            if "walmart-store-select" in request.form:
-                walmart_store_data["id"] = request.form["walmart-store-select"]
-            else:
-                walmart_store_data["id"] = str(
-                    walmart_store_data["payload"]["stores"][0]["id"]
-                )
-
-            walmart_store_data["name"] = walmart_store_data["payload"]["stores"][0][
-                "displayName"
-            ]
-
-            products_data.set_store_walmart(walmart_store_data["id"])
-            functions.append(lambda: products_data.query_walmart(session))
-
-            results = await async_execute_search(functions, session)
-            location = [latitude, longitude, postal_code, formatted_address]
-            search_data = process_search_results(
-                results,
-                query,
-                enable_safeway,
-                parser,
-                location,
-                pc_store_name,
-                saveon_store_name,
-                walmart_store_data["payload"]["stores"],
-                d,
-                e,
-            )
-
-            return render_template("search.html", result_data=search_data)
 
     @app.route("/search", methods=("GET", "POST"))
     def search():
