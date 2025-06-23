@@ -64,14 +64,13 @@ class SupermarketAPI:
         return self.r.json()
 
     def set_store_pc(self, store_number):
-        self.store_number = store_number
+        self.pc_store_number = store_number
 
     def query_pc(self, pc_store_brand="superstore"):
         pc_api_url = "https://api.pcexpress.ca/pcx-bff/api/v2/products/search"
 
         pc_headers = {
             "Host": "api.pcexpress.ca",
-            "Content-Length": "552",
             "Sec-Ch-Ua": '"Chromium";v="125", "Not.A/Brand";v="24"',
             "Is-Helios-Account": "false",
             "X-Application-Type": "Web",
@@ -100,7 +99,7 @@ class SupermarketAPI:
             {
                 "cart": {"cartId": "5f034336-4031-41f0-aade-050314cb6c21"},
                 "fulfillmentInfo": {
-                    "storeId": self.store_number,
+                    "storeId": self.pc_store_number,
                     "pickupType": "STORE",
                     "offerType": "OG",
                     "date": "23062025",
