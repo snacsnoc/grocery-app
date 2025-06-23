@@ -1,4 +1,3 @@
-# helpers.py
 import concurrent.futures
 
 from flask import abort, current_app
@@ -101,19 +100,34 @@ def process_search_results(
         walmart_data_parsed = (
             parser.parse_walmart_json_data(f) if f is not None else None
         )
+
         if isinstance(walmart_store_data, list) and walmart_store_data:
             walmart_store_entry = walmart_store_data[0]
             walmart_store_name = f"{walmart_store_entry.get('nodeId', 'Unknown')} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
-        else:
-            walmart_store_name = "Unavailable"
-    else:
-        walmart_data_parsed = {"none": False}
 
-    if not all([a, c]):
+    if isinstance(a, Exception) or isinstance(c, Exception):
         search_data = {
             "error": "No results",
-            "coords": {"latitude": latitude, "longitude": longitude},
+            "query": query,
+            "coords": {
+                "latitude": latitude,
+                "longitude": longitude,
+                "postal_code": postal_code,
+                "formatted_address": formatted_address,
+            },
             "debug_mode": current_app.config["DEBUG"],
+            "enable_safeway": enable_safeway,
+            "store_name": {
+                "pc": pc_store_name,
+                "saveon": saveon_store_name,
+                "walmart": walmart_store_name,
+            },
+            "results": {},
+            "store_locations": {
+                "pc": pc_store_data.get("ResultList", []),
+                "saveon": saveon_store_data.get("items", []),
+                "walmart": walmart_store_data,
+            },
         }
     else:
         search_data = {
@@ -151,6 +165,7 @@ def process_search_results(
 
 def set_store_ids(request_form, products_data, latitude, longitude, postal_code):
     d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+
     if "pc-store-select" in request_form:
         pc_store_id = request_form["pc-store-select"]
         pc_store_name = pc_store_id
@@ -172,16 +187,13 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
     else:
         saveon_store_id = e["items"][0]["retailerStoreId"] if e["items"] else False
         saveon_store_name = e["items"][0]["name"] if e["items"] else False
+
     try:
         walmart_store_data = set_walmart_store_data(
             request_form, products_data, postal_code
         )
     except Exception as err:
         walmart_store_data = {"id": None, "name": "Unavailable", "payload": {}}
-
-    # walmart_store_data = set_walmart_store_data(
-    #     request_form, products_data, postal_code
-    # )
 
     return (
         pc_store_id,
@@ -201,35 +213,27 @@ def set_walmart_store_data(request_form, products_data, postal_code):
     if not walmart_store_search or "data" not in walmart_store_search:
         raise ValueError("Invalid Walmart store search response")
 
-    location_data = walmart_store_search["data"].get("location", {})
-    pickup_node = location_data.get("pickupNode")
+    data = walmart_store_search["data"]
 
-    if not pickup_node:
-        raise ValueError("No pickup nodes found in the Walmart store search response")
+    nodes = data.get("nearByNodes", {}).get("nodes") or data.get("location", {}).get(
+        "pickupNode"
+    )
+    if not nodes:
+        raise ValueError("No pickup nodes found")
 
-    if isinstance(pickup_node, dict):
-        pickup_node = [pickup_node]
+    if isinstance(nodes, dict):
+        nodes = [nodes]
+
+    for n in nodes:
+        n.setdefault("nodeId", n.get("id"))
 
     # Check if a store is selected in the form
-    if "walmart-store-select" in request_form:
-        walmart_store_id = request_form["walmart-store-select"]
+    selected_id = request_form.get("walmart-store-select", nodes[0]["nodeId"])
 
-        # Find the store by ID in the list of pickup nodes
-        walmart_store_name = next(
-            (
-                store["displayName"]
-                for store in pickup_node
-                if store["nodeId"] == walmart_store_id
-            ),
-            "Unknown Store",
-        )
-    else:
-        # Default to the first pickup node
-        walmart_store_id = pickup_node[0]["nodeId"]
-        walmart_store_name = pickup_node[0]["displayName"]
+    store = next((n for n in nodes if n["nodeId"] == selected_id), nodes[0])
 
     return {
-        "id": str(walmart_store_id),
-        "name": walmart_store_name,
-        "payload": {"stores": pickup_node},
+        "id": str(store["nodeId"]),
+        "name": store.get("displayName", "Unknown Store"),
+        "payload": {"stores": nodes},
     }
