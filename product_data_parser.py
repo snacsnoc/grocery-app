@@ -6,10 +6,26 @@ class ProductDataParser:
     @staticmethod
     def get_image(
         product,
-        default_image="https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png",
+        default_image="https://upload.wikimedia.org/wikipedia/commons/6/67/056-crying-face.svg",
     ):
+        # New PC tiles
+        if product.get("productImage"):
+            img = product["productImage"][0]
+            return (
+                img.get("smallUrl")
+                or img.get("thumbnailUrl")
+                or img.get("imageUrl")
+                or default_image
+            )
+
+        # Walmart
         if product.get("imageAssets"):
             return product["imageAssets"][0].get("smallRetinaUrl", default_image)
+
+        # Safeway
+        if product.get("image"):
+            return product["image"].get("src", default_image)
+
         return default_image
 
     @staticmethod
@@ -162,7 +178,7 @@ class ProductDataParser:
                 f"${unit_price:.2f}/100g" if unit_price != "NA" else "NA"
             )
 
-            image = "https://lib.store.yahoo.net/lib/yhst-47024838256514/emoji-sad.png"
+            image = "https://upload.wikimedia.org/wikipedia/commons/6/67/056-crying-face.svg"
             allImages = product_code.get("imageInfo", {}).get("allImages")
             if allImages and allImages[0]:
                 image = allImages[0].get("url", image)
