@@ -14,18 +14,37 @@ class ProductDataParser:
 
     @staticmethod
     def parse_pc_json_data(data):
-        product_data = data.get("results", [])
-        return [
-            {
-                "name": product.get("name", "NA"),
-                "price": product.get("prices", {}).get("price", {}).get("value", "NA"),
-                "quantity": product.get("packageSize", "NA"),
-                "unit": product.get("prices", {}).get("price", {}).get("unit", "NA"),
-                "unit_price": f"${product.get('prices', {}).get('comparisonPrices', [{}])[0].get('value', 'NA')}/100",
-                "image": ProductDataParser.get_image(product),
-            }
-            for product in product_data
-        ]
+
+        layout = data.get("layout") or {}
+        sections = layout.get("sections") or {}
+        main_col = sections.get("mainContentCollection") or {}
+        comps = main_col.get("components") or []
+
+        tiles = [t for c in comps for t in c.get("data", {}).get("productTiles", [])]
+
+        def split_pkg(s: str):
+            # "700 g, $1.26/100g" → ("700 g", "$1.26/100g")
+            if not s:
+                return "NA", "NA"
+            left, *right = [p.strip() for p in s.split(",", 1)]
+            return left, (right[0] if right else "NA")
+
+        results = []
+        for t in tiles:
+            qty, unit_price = split_pkg(t.get("packageSizing", ""))
+
+            results.append(
+                {
+                    "name": t.get("title", "NA"),
+                    "price": t.get("pricing", {}).get("price", "NA"),
+                    "quantity": qty,
+                    "unit": t.get("pricingUnits", {}).get("unit", "NA"),
+                    "unit_price": unit_price,
+                    "image": ProductDataParser.get_image(t),
+                }
+            )
+
+        return results
 
     @staticmethod
     def parse_safeway_json_data(data):
