@@ -87,9 +87,15 @@ def process_search_results(
     else:
         parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
 
-    if enable_safeway:
-        if results["query_safeway"]["entities"] is not None:
-            safeway_data = parser.parse_safeway_json_data(results["query_safeway"])
+    if enable_safeway and "query_safeway" in results:
+        safeway_result = results["query_safeway"]
+        if isinstance(safeway_result, Exception):
+            safeway_data = "no result"
+        elif (
+            isinstance(safeway_result, dict)
+            and safeway_result.get("entities") is not None
+        ):
+            safeway_data = parser.parse_safeway_json_data(safeway_result)
         else:
             safeway_data = "no result"
     else:
