@@ -59,23 +59,34 @@ Result:
 ```
 
 # Walmart
-Walmart has a REST API for web just like the previous grocers and not much surprise here.
-Unfortunately the devs at Walmart are smart enough to add anti-bot measures to reduce automated requests (aka this project...)
-This project has been running successfully for 1yr+ so it's safe to say this API can be hit without being....blocked.
+Walmart has a REST-ish API for web just like the previous grocers and not much surprise here,
+but the current code actually uses GraphQL endpoints. Unfortunately the devs at Walmart are
+smart enough to add anti-bot measures to reduce automated requests (aka this project...)
+This project has been running successfully for 1yr+ so it's safe to say this API can be hit
+without being....blocked.
 
-__Endpoint:__ `walmart.ca/api`
+__Base Host:__ `walmart.ca`
 
-Searching for stores given a postal code or address is done like so:
+Store search (postal code) is done with GraphQL:
+
+__Endpoint:__ `walmart.ca/orchestra/graphql/nearByNodes/<hash>`
+
+__URL params (from supermarket.py, URL-encoded variables):__
 ```commandline
-curl -i -s -k -X $'GET' \
-    -H $'Host: www.walmart.ca' -H $'Sec-Ch-Ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"96\"' -H $'Sec-Ch-Ua-Mobile: ?0' -H $'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36' -H $'Sec-Ch-Ua-Platform: \"macOS\"' -H $'Accept: */*' -H $'Sec-Fetch-Site: same-origin' -H $'Sec-Fetch-Mode: cors' -H $'Sec-Fetch-Dest: empty' -H $'Referer: https://www.walmart.ca/en/stores-near-me' -H $'Accept-Encoding: gzip, deflate' -H $'Accept-Language: en-US,en;q=0.9' \
-    -b $'Sec-Ch-Ua: \" Not A;Brand\";v=\"99\", \"Chromium\"; v=\"96\"' \
-    $'https://www.walmart.ca/en/stores-near-me/api/searchStores?singleLineAddr=t3b1h4'
+?variables=%7B%22input%22%3A%7B%22postalCode%22%3A%22V4G%201N4%22%2C%22accessTypes%22%3A%5B%22PICKUP_INSTORE%22%2C%22PICKUP_CURBSIDE%22%5D%2C%22nodeTypes%22%3A%5B%22STORE%22%2C%22PICKUP_SPOKE%22%2C%22PICKUP_POPUP%22%5D%2C%22latitude%22%3Anull%2C%22longitude%22%3Anull%2C%22radius%22%3Anull%7D%2C%22checkItemAvailability%22%3Afalse%2C%22checkWeeklyReservation%22%3Afalse%2C%22enableStoreSelectorMarketplacePickup%22%3Afalse%2C%22enableVisionStoreSelector%22%3Afalse%2C%22enableStorePagesAndFinderPhase2%22%3Afalse%2C%22enableStoreBrandFormat%22%3Afalse%2C%22disableNodeAddressPostalCode%22%3Afalse%7D
 ```
 
+__Cookies used:__
+```json
+{
+  "walmart.nearestPostalCode": "V4G1N4",
+  "walmart.nearestLatLng": "49.1234,-123.1234",
+  "wmt.c": "0"
+}
+```
 Result: https://gist.github.com/snacsnoc/ea71174078ed983122847a1e9389903c
 
-Jumping into the mobile app, we can see that they are actually sending a GraphQL request. This allows searching to be much more powerful.
+Product search (given a store) uses the mobile GraphQL endpoint:
 
 __Endpoint:__ `walmart.ca/orchestra/snb/graphql/search`
 
@@ -85,11 +96,14 @@ __URL params:__
 ```
 Result: https://gist.github.com/snacsnoc/c8d09bd8b4811fef899899849925d9bb
 
-You can search by lat/long + postal code or by store ID by setting the appropriate cookies.
+Store scoping is done by setting cookies.
 ```json
 {
-            "deliveryCatchment": self.walmart_store_number,
-            "walmart.nearestPostalCode": "V4G1N4",
-            "defaultNearestStoreId": self.walmart_store_number,
+  "WM_SEC.AUTH_TOKEN": "<token>",
+  "deliveryCatchment": "<store_id>",
+  "defaultNearestStoreId": "<store_id>"
 }
 ```
+
+The POST body is the big GraphQL `getPreso` query (see `supermarket.py`) with variables:
+`qy`, `pg`, `ten` = `CA_GLASS`, `pT` = `MobileSearchPage` etc.
