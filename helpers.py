@@ -31,6 +31,7 @@ def get_geo_coords(postal_code):
     if current_app.config["DEBUG"] == "TRUE":
         longitude = "-115.69"
         latitude = "49.420"
+        formatted_address = "Debug Address"
     else:
         try:
             postal_lookup = LocationLookupC(
@@ -82,6 +83,15 @@ def process_search_results(
     a = results["query_pc"]
     c = results["query_saveon"]
 
+    # Initialize Walmart values to avoid UnboundLocalError
+    # Walmart has a high chance of blocking "automated" requests
+    walmart_data_parsed = None
+    walmart_store_name = "Unknown Store"
+
+    if isinstance(walmart_store_data, list) and walmart_store_data:
+        walmart_store_entry = walmart_store_data[0]
+        walmart_store_name = f"{walmart_store_entry.get('nodeId', walmart_store_entry.get('id', 'Unknown'))} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
+
     if "status" in results["query_saveon"]:
         parsed_saveon_data = "no results"
     else:
@@ -103,13 +113,8 @@ def process_search_results(
 
     if "query_walmart" in results:
         f = results["query_walmart"]
-        walmart_data_parsed = (
-            parser.parse_walmart_json_data(f) if f is not None else None
-        )
-
-        if isinstance(walmart_store_data, list) and walmart_store_data:
-            walmart_store_entry = walmart_store_data[0]
-            walmart_store_name = f"{walmart_store_entry.get('nodeId', 'Unknown')} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
+        if not isinstance(f, Exception) and f is not None:
+            walmart_data_parsed = parser.parse_walmart_json_data(f)
 
     if isinstance(a, Exception) or isinstance(c, Exception):
         search_data = {
