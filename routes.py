@@ -50,8 +50,8 @@ def configure_routes(app):
             saveon_store_id,
             saveon_store_name,
             walmart_store_data,
-            d,
-            e,
+            pc_store_data,
+            saveon_store_data,
         ) = set_store_ids(request.form, products_data, latitude, longitude, postal_code)
 
         products_data.set_store_saveon(saveon_store_id)
@@ -78,17 +78,16 @@ def configure_routes(app):
                 .get("displayName", "Unknown Store")
             )
 
-            # Execute Walmart search
-            products_data.set_store_walmart(walmart_store_data["id"])
+            walmart_stores = walmart_store_data.get("payload", {}).get("stores", [])
+            walmart_store_id = walmart_store_data.get("id")
+            if walmart_stores and walmart_store_id not in (None, "", "Unavailable"):
+                products_data.set_store_walmart(walmart_store_id)
+                functions.append(products_data.query_walmart)
 
-            functions.append(products_data.query_walmart)
-
-        except (KeyError, IndexError, TypeError) as e:
+        except (KeyError, IndexError, TypeError) as err:
             walmart_store_data["id"] = "Unavailable"
             walmart_store_data["name"] = "Unknown Store"
             walmart_store_data["payload"] = {"stores": []}
-
-        walmart_stores = walmart_store_data.get("payload", {}).get("stores", [])
 
         results = execute_search(functions)
         location = [latitude, longitude, postal_code, formatted_address]
@@ -100,9 +99,9 @@ def configure_routes(app):
             location,
             pc_store_name,
             saveon_store_name,
-            walmart_stores,
-            d,
-            e,
+            walmart_store_data,
+            pc_store_data,
+            saveon_store_data,
         )
 
         return render_template("search.html", result_data=search_data)
