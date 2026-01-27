@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 
 from flask import abort, current_app
 
@@ -80,93 +81,109 @@ def process_search_results(
     saveon_store_data,
 ):
     latitude, longitude, postal_code, formatted_address = location
-    a = results["query_pc"]
-    c = results["query_saveon"]
+    pc_result = results.get("query_pc")
+    saveon_result = results.get("query_saveon")
 
     # Initialize Walmart values to avoid UnboundLocalError
     # Walmart has a high chance of blocking "automated" requests
-    walmart_data_parsed = None
+    walmart_data_parsed = []
     walmart_store_name = "Unknown Store"
+    walmart_warning = None
 
-    if isinstance(walmart_store_data, list) and walmart_store_data:
-        walmart_store_entry = walmart_store_data[0]
+    walmart_store_list = []
+    if isinstance(walmart_store_data, list):
+        walmart_store_list = walmart_store_data
+    elif isinstance(walmart_store_data, dict):
+        walmart_store_list = walmart_store_data.get("payload", {}).get("stores", [])
+
+    if walmart_store_list:
+        walmart_store_entry = walmart_store_list[0]
         walmart_store_name = f"{walmart_store_entry.get('nodeId', walmart_store_entry.get('id', 'Unknown'))} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
 
-    if "status" in results["query_saveon"]:
-        parsed_saveon_data = "no results"
+    pc_data = []
+    if isinstance(pc_result, dict):
+        pc_data = parser.parse_pc_json_data(pc_result) or []
+
+    if isinstance(saveon_result, Exception) or saveon_result is None:
+        parsed_saveon_data = []
+    elif isinstance(saveon_result, dict) and "status" in saveon_result:
+        parsed_saveon_data = []
     else:
-        parsed_saveon_data = parser.parse_saveonfoods_json_data(c)
+        parsed_saveon_data = parser.parse_saveonfoods_json_data(saveon_result) or []
 
     if enable_safeway and "query_safeway" in results:
         safeway_result = results["query_safeway"]
         if isinstance(safeway_result, Exception):
-            safeway_data = "no result"
+            safeway_data = []
         elif (
             isinstance(safeway_result, dict)
             and safeway_result.get("entities") is not None
         ):
-            safeway_data = parser.parse_safeway_json_data(safeway_result)
+            safeway_data = parser.parse_safeway_json_data(safeway_result) or []
         else:
-            safeway_data = "no result"
+            safeway_data = []
     else:
         safeway_data = None
 
+    walmart_debug = None
     if "query_walmart" in results:
         f = results["query_walmart"]
-        if not isinstance(f, Exception) and f is not None:
-            walmart_data_parsed = parser.parse_walmart_json_data(f)
+        if isinstance(f, Exception) or f is None:
+            pass
+        else:
+            if isinstance(f, dict) and f.get("_error"):
+                walmart_debug = {
+                    "status": f.get("_status"),
+                    "error": f.get("_error"),
+                    "body": f.get("_body"),
+                }
 
-    if isinstance(a, Exception) or isinstance(c, Exception):
-        search_data = {
-            "error": "No results",
-            "query": query,
-            "coords": {
-                "latitude": latitude,
-                "longitude": longitude,
-                "postal_code": postal_code,
-                "formatted_address": formatted_address,
-            },
-            "debug_mode": current_app.config["DEBUG"],
-            "enable_safeway": enable_safeway,
-            "store_name": {
-                "pc": pc_store_name,
-                "saveon": saveon_store_name,
-                "walmart": walmart_store_name,
-            },
-            "results": {},
-            "store_locations": {
-                "pc": pc_store_data.get("ResultList", []),
-                "saveon": saveon_store_data.get("items", []),
-                "walmart": walmart_store_data,
-            },
-        }
-    else:
-        search_data = {
-            "query": query,
-            "store_name": {
-                "pc": pc_store_name,
-                "saveon": saveon_store_name,
-                "walmart": walmart_store_name,
-            },
-            "results": {
-                "saveon": parsed_saveon_data,
-                "pc": parser.parse_pc_json_data(a),
-                "walmart": walmart_data_parsed,
-            },
-            "coords": {
-                "latitude": latitude,
-                "longitude": longitude,
-                "postal_code": postal_code,
-                "formatted_address": formatted_address,
-            },
-            "debug_mode": current_app.config["DEBUG"],
-            "enable_safeway": enable_safeway,
-            "store_locations": {
-                "pc": pc_store_data["ResultList"],
-                "saveon": saveon_store_data["items"],
-                "walmart": walmart_store_data,
-            },
-        }
+            walmart_data_parsed = parser.parse_walmart_json_data(f) or []
+
+    search_data = {
+        "query": query,
+        "store_name": {
+            "pc": pc_store_name,
+            "saveon": saveon_store_name,
+            "walmart": walmart_store_name,
+        },
+        "walmart_warning": walmart_warning,
+        "walmart_debug": (
+            walmart_debug
+            or {
+                "status": walmart_store_data.get("status"),
+                "error": walmart_store_data.get("error"),
+                "body": walmart_store_data.get("body"),
+            }
+            if isinstance(walmart_store_data, dict)
+            and (
+                walmart_store_data.get("status")
+                or walmart_store_data.get("error")
+                or walmart_store_data.get("body")
+            )
+            else None
+        ),
+        "results": {
+            "saveon": parsed_saveon_data,
+            "pc": pc_data,
+            "walmart": walmart_data_parsed,
+        },
+        "coords": {
+            "latitude": latitude,
+            "longitude": longitude,
+            "postal_code": postal_code,
+            "formatted_address": formatted_address,
+        },
+        "debug_mode": current_app.config["DEBUG"],
+        "enable_safeway": enable_safeway,
+        "store_locations": {
+            "pc": pc_store_data.get("ResultList", []),
+            "saveon": saveon_store_data.get("items", []),
+            "walmart": walmart_store_list,
+        },
+    }
+    if not any(search_data["results"].values()):
+        search_data["error"] = "No results"
     if enable_safeway:
         search_data["results"]["safeway"] = safeway_data
         search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
@@ -199,12 +216,9 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
         saveon_store_id = e["items"][0]["retailerStoreId"] if e["items"] else False
         saveon_store_name = e["items"][0]["name"] if e["items"] else False
 
-    try:
-        walmart_store_data = set_walmart_store_data(
-            request_form, products_data, postal_code
-        )
-    except Exception as err:
-        walmart_store_data = {"id": None, "name": "Unavailable", "payload": {}}
+    walmart_store_data = set_walmart_store_data(
+        request_form, products_data, postal_code, latitude, longitude
+    )
 
     return (
         pc_store_id,
@@ -217,20 +231,66 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
     )
 
 
-def set_walmart_store_data(request_form, products_data, postal_code):
+def set_walmart_store_data(request_form, products_data, postal_code, latitude=None, longitude=None):
 
-    walmart_store_search = products_data.search_stores_walmart(postal_code)
+    walmart_store_search = products_data.search_stores_walmart(postal_code, latitude, longitude)
 
-    if not walmart_store_search or "data" not in walmart_store_search:
-        raise ValueError("Invalid Walmart store search response")
+    if not walmart_store_search:
+        return {
+            "id": None,
+            "name": "Unavailable",
+            "payload": {"stores": []},
+            "status": None,
+            "error": "No response from Walmart store lookup",
+        }
 
-    data = walmart_store_search["data"]
+    if isinstance(walmart_store_search, dict) and walmart_store_search.get("_error"):
+        return {
+            "id": None,
+            "name": "Unavailable",
+            "payload": {"stores": []},
+            "status": walmart_store_search.get("_status"),
+            "error": f"Walmart store lookup failed ({walmart_store_search.get('_error')})",
+            "body": walmart_store_search.get("_body"),
+        }
 
-    nodes = data.get("nearByNodes", {}).get("nodes") or data.get("location", {}).get(
-        "pickupNode"
-    )
+    if "data" not in walmart_store_search:
+        return {
+            "id": None,
+            "name": "Unavailable",
+            "payload": {"stores": []},
+            "status": None,
+            "error": "Invalid Walmart store search response",
+        }
+
+    data = walmart_store_search.get("data", {})
+    print(f"DEBUG: Walmart Store Search Data: {json.dumps(data, indent=2)}")
+    if not data:
+        return {
+            "id": None,
+            "name": "Unavailable",
+            "payload": {"stores": []},
+            "status": None,
+            "error": "No data in Walmart store search response",
+        }
+
+    nearByNodes = data.get("nearByNodes", {})
+    if isinstance(nearByNodes, dict):
+        nodes = nearByNodes.get("nodes")
+    else:
+        nodes = None
+
     if not nodes:
-        raise ValueError("No pickup nodes found")
+        nodes = data.get("location", {}).get("pickupNode")
+
+    if not nodes:
+        return {
+            "id": None,
+            "name": "Unavailable",
+            "payload": {"stores": []},
+            "status": None,
+            "error": "No Walmart pickup nodes found",
+        }
 
     if isinstance(nodes, dict):
         nodes = [nodes]
