@@ -1,5 +1,6 @@
 # error_handlers.py
 from flask import render_template, redirect, url_for
+from werkzeug.exceptions import HTTPException
 
 
 def configure_error_handlers(app):
@@ -11,7 +12,13 @@ def configure_error_handlers(app):
     def page_not_found(e):
         return render_template("404.html"), 404
 
+    @app.errorhandler(405)
+    def method_not_allowed(e):
+        return redirect(url_for("index"))
+
     @app.errorhandler(Exception)
     def handle_exception(e):
+        if isinstance(e, HTTPException):
+            return e
         app.logger.exception(e)
         return render_template("error.html"), 500
