@@ -91,13 +91,28 @@ def process_search_results(
     walmart_warning = None
 
     walmart_store_list = []
+    selected_walmart_store_id = None
     if isinstance(walmart_store_data, list):
         walmart_store_list = walmart_store_data
     elif isinstance(walmart_store_data, dict):
         walmart_store_list = walmart_store_data.get("payload", {}).get("stores", [])
+        selected_walmart_store_id = walmart_store_data.get("id")
 
     if walmart_store_list:
-        walmart_store_entry = walmart_store_list[0]
+        walmart_store_entry = None
+        if selected_walmart_store_id not in (None, "", "Unavailable"):
+            selected_walmart_store_id = str(selected_walmart_store_id)
+            walmart_store_entry = next(
+                (
+                    store
+                    for store in walmart_store_list
+                    if str(store.get("nodeId", store.get("id")))
+                    == selected_walmart_store_id
+                ),
+                None,
+            )
+        if walmart_store_entry is None:
+            walmart_store_entry = walmart_store_list[0]
         walmart_store_name = f"{walmart_store_entry.get('nodeId', walmart_store_entry.get('id', 'Unknown'))} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
 
     pc_data = []
@@ -231,10 +246,13 @@ def set_store_ids(request_form, products_data, latitude, longitude, postal_code)
     )
 
 
-def set_walmart_store_data(request_form, products_data, postal_code, latitude=None, longitude=None):
+def set_walmart_store_data(
+    request_form, products_data, postal_code, latitude=None, longitude=None
+):
 
-    walmart_store_search = products_data.search_stores_walmart(postal_code, latitude, longitude)
-
+    walmart_store_search = products_data.search_stores_walmart(
+        postal_code, latitude, longitude
+    )
     if not walmart_store_search:
         return {
             "id": None,
@@ -264,7 +282,6 @@ def set_walmart_store_data(request_form, products_data, postal_code, latitude=No
         }
 
     data = walmart_store_search.get("data", {})
-    print(f"DEBUG: Walmart Store Search Data: {json.dumps(data, indent=2)}")
     if not data:
         return {
             "id": None,
