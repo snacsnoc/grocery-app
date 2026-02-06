@@ -178,12 +178,16 @@ class ProductDataParser:
                 f"${unit_price:.2f}/100g" if unit_price != "NA" else "NA"
             )
 
-            allImages = product_code.get("imageInfo", {}).get("allImages", [])
-            image = (
-                allImages[0].get("url")
-                if allImages and "url" in allImages[0]
-                else "https://upload.wikimedia.org/wikipedia/commons/6/67/056-crying-face.svg"
-            )
+            image_info = product_code.get("imageInfo", {})
+            thumbnail_url = image_info.get("thumbnailUrl")
+            all_images = image_info.get("allImages", [])
+            image = None
+            if thumbnail_url:
+                image = thumbnail_url
+            elif all_images and "url" in all_images[0]:
+                image = all_images[0].get("url")
+            else:
+                image = "https://upload.wikimedia.org/wikipedia/commons/6/67/056-crying-face.svg"
 
             product_info_map = {
                 "name": product_name,
