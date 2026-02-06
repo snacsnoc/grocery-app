@@ -61,9 +61,8 @@ Result:
 # Walmart
 Walmart has a REST-ish API for web just like the previous grocers and not much surprise here,
 but the current code actually uses GraphQL endpoints. Unfortunately the devs at Walmart are
-smart enough to add anti-bot measures to reduce automated requests (aka this project...)
-This project has been running successfully for 1yr+ so it's safe to say this API can be hit
-without being....blocked.
+smart enough to add anti-bot measures to reduce automated requests. Non-residential IPs
+may be blocked (often HTTP 412 with a PerimeterX payload).
 
 __Base Host:__ `walmart.ca`
 
@@ -107,3 +106,7 @@ Store scoping is done by setting cookies.
 
 The POST body is the big GraphQL `getPreso` query (see `supermarket.py`) with variables:
 `qy`, `pg`, `ten` = `CA_GLASS`, `pT` = `MobileSearchPage` etc.
+
+Optional configuration:
+- `WALMART_PROXY_URL` or `WALMART_PROXY` - proxy to use for Walmart requests (only with authorized access)
+- `WALMART_TIMEOUT` - request timeout in seconds (default 12)
