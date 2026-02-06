@@ -20,6 +20,17 @@
             {% endif %}
             <li>Walmart: {{ result_data['store_name']['walmart']}}</li>
         </ul>
+        {% if result_data.get('walmart_warning') %}
+        <div class="alert alert-warning" role="alert">
+            {{ result_data['walmart_warning'] }}
+        </div>
+        {% endif %}
+        {% if result_data.get('walmart_debug') %}
+        <details class="mb-3">
+            <summary>Walmart debug</summary>
+            <pre style="white-space: pre-wrap;">{{ result_data['walmart_debug'] }}</pre>
+        </details>
+        {% endif %}
         <small><i>Tap table header to sort</i></small>
         <div class="table-container">
             <table class="data-table">
