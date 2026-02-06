@@ -68,11 +68,11 @@ __Base Host:__ `walmart.ca`
 
 Store search (postal code) is done with GraphQL:
 
-__Endpoint:__ `walmart.ca/orchestra/graphql/nearByNodes/<hash>`
+__Endpoint:__ `walmart.ca/orchestra/cartxo/graphql/FetchNearByNodes/<hash>`
 
 __URL params (from supermarket.py, URL-encoded variables):__
 ```commandline
-?variables=%7B%22input%22%3A%7B%22postalCode%22%3A%22V4G%201N4%22%2C%22accessTypes%22%3A%5B%22PICKUP_INSTORE%22%2C%22PICKUP_CURBSIDE%22%5D%2C%22nodeTypes%22%3A%5B%22STORE%22%2C%22PICKUP_SPOKE%22%2C%22PICKUP_POPUP%22%5D%2C%22latitude%22%3Anull%2C%22longitude%22%3Anull%2C%22radius%22%3Anull%7D%2C%22checkItemAvailability%22%3Afalse%2C%22checkWeeklyReservation%22%3Afalse%2C%22enableStoreSelectorMarketplacePickup%22%3Afalse%2C%22enableVisionStoreSelector%22%3Afalse%2C%22enableStorePagesAndFinderPhase2%22%3Afalse%2C%22enableStoreBrandFormat%22%3Afalse%2C%22disableNodeAddressPostalCode%22%3Afalse%7D
+?id=13cc7c54f667f47fc364643da028af42bb68c795ddf6da8733aca6559b41c53f&variables=%7B%22checkInventoryFlow%22%3Afalse%2C%22input%22%3A%7B%22accessTypes%22%3A%5B%22PICKUP_CURBSIDE%22%2C%22PICKUP_INSTORE%22%2C%22PICKUP_SPOKE%22%2C%22PICKUP_POPUP%22%5D%2C%22city%22%3Anull%2C%22latitude%22%3Anull%2C%22longitude%22%3Anull%2C%22nodeTypes%22%3A%5B%22STORE%22%2C%22PICKUP_SPOKE%22%2C%22PICKUP_POPUP%22%5D%2C%22partnerIds%22%3Anull%2C%22postalCode%22%3A%22V4G%201N4%22%2C%22stateOrProvince%22%3Anull%7D%7D
 ```
 
 __Cookies used:__
@@ -107,6 +107,6 @@ Store scoping is done by setting cookies.
 The POST body is the big GraphQL `getPreso` query (see `supermarket.py`) with variables:
 `qy`, `pg`, `ten` = `CA_GLASS`, `pT` = `MobileSearchPage` etc.
 
-Optional configuration:
-- `WALMART_PROXY_URL` or `WALMART_PROXY` - proxy to use for Walmart requests (only with authorized access)
-- `WALMART_TIMEOUT` - request timeout in seconds (default 12)
+Notes:
+You'll more than likely hit the PerimeterX bot check when querying from hosted IPs. An automated solver is implented in `walmart_px.py`.
+For more info, see: https://github.com/Pr0t0ns/PerimeterX-Solver
