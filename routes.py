@@ -61,33 +61,15 @@ def configure_routes(app):
         # if "walmart-store-select" in request.form:
         #    functions.append(products_data.query_walmart)
 
-        # TODO: does not work when switching stores
-        try:
-            if "walmart-store-select" in request.form:
-                walmart_store_data["id"] = request.form["walmart-store-select"]
-            else:
-                walmart_store_data["id"] = str(
-                    walmart_store_data.get("payload", {})
-                    .get("stores", [{}])[0]
-                    .get("nodeId", "Unavailable")
-                )
-
-            walmart_store_data["name"] = (
-                walmart_store_data.get("payload", {})
-                .get("stores", [{}])[0]
-                .get("displayName", "Unknown Store")
-            )
-
-            walmart_stores = walmart_store_data.get("payload", {}).get("stores", [])
+        walmart_store_id = None
+        walmart_stores = []
+        if isinstance(walmart_store_data, dict):
             walmart_store_id = walmart_store_data.get("id")
-            if walmart_stores and walmart_store_id not in (None, "", "Unavailable"):
-                products_data.set_store_walmart(walmart_store_id)
-                functions.append(products_data.query_walmart)
+            walmart_stores = walmart_store_data.get("payload", {}).get("stores", [])
 
-        except (KeyError, IndexError, TypeError) as err:
-            walmart_store_data["id"] = "Unavailable"
-            walmart_store_data["name"] = "Unknown Store"
-            walmart_store_data["payload"] = {"stores": []}
+        if walmart_stores and walmart_store_id not in (None, "", "Unavailable"):
+            products_data.set_store_walmart(walmart_store_id)
+            functions.append(products_data.query_walmart)
 
         results = execute_search(functions)
         location = [latitude, longitude, postal_code, formatted_address]
