@@ -64,44 +64,72 @@ class ProductDataParser:
 
     @staticmethod
     def parse_safeway_json_data(data):
-        product_data = data.get("entities", {}).get("product", {})
         result = []
-        for product_id, product_info in product_data.items():
-            name = product_info.get("name", "NA")
-            price_dict = product_info.get("price", {}).get("current", {})
-            price = price_dict.get("amount", "0")
+        results = data.get("results", [])
+        if not results:
+            return result
 
-            # Convert price to float and format as a string
+        products = results[0].get("hits", [])
+        for product_info in products:
+            name = product_info.get("name", "NA")
+            price = product_info.get("price", "0")
+
             try:
                 price_float = float(price)
                 price_string = f"${price_float:.2f}"
-            except ValueError:
+            except (TypeError, ValueError):
+                price_float = None
                 price_string = "NA"
 
-            # Extract weight in grams from the product name
-            weight_match = re.search(r"(\d+)\s*g", name, re.IGNORECASE)
-            weight_in_grams = int(weight_match.group(1)) if weight_match else None
+            item_amount_value = product_info.get("itemAmountValue")
+            item_amount_unit = product_info.get("itemAmountUnit")
+            weight_in_grams = None
+            if item_amount_value is not None and item_amount_unit:
+                try:
+                    amount_value = float(item_amount_value)
+                    if str(item_amount_unit).upper() == "G":
+                        weight_in_grams = int(amount_value)
+                    elif str(item_amount_unit).upper() == "KG":
+                        weight_in_grams = int(amount_value * 1000)
+                except (TypeError, ValueError):
+                    weight_in_grams = None
 
-            # Calculate unit price per 100 grams
-            if weight_in_grams:
+            if weight_in_grams is None:
+                weight_str = product_info.get("weight", "")
+                weight_match = re.search(
+                    r"(\d+(?:\.\d+)?)\s*(KG|G)",
+                    weight_str,
+                    re.IGNORECASE,
+                )
+                if weight_match:
+                    value = float(weight_match.group(1))
+                    unit = weight_match.group(2).upper()
+                    weight_in_grams = int(value * 1000) if unit == "KG" else int(value)
+
+            if weight_in_grams is None:
+                name_match = re.search(r"(\d+)\s*g", name, re.IGNORECASE)
+                weight_in_grams = int(name_match.group(1)) if name_match else None
+
+            if weight_in_grams and price_float is not None:
                 unit_price = (price_float / weight_in_grams) * 100
                 unit_price_string = f"${unit_price:.2f}/100g"
             else:
                 unit_price_string = "NA"
 
-            image = product_info.get("image", {}).get(
-                "src", ProductDataParser.get_image({})
+            images = product_info.get("images", [])
+            image = (
+                images[0]
+                if isinstance(images, list) and images
+                else ProductDataParser.get_image({})
             )
 
             product_info_map = {
                 "name": name,
                 "price": price_string,
                 "image": image,
-                "quantity": weight_in_grams,
+                "quantity": weight_in_grams or item_amount_value,
                 "unit_price": unit_price_string,
-                "unit": product_info.get("price", {})
-                .get("unit", {})
-                .get("label", "NA"),
+                "unit": item_amount_unit or product_info.get("uom", "NA"),
             }
             result.append(product_info_map)
 
@@ -111,10 +139,21 @@ class ProductDataParser:
     def parse_saveonfoods_json_data(data):
         product_data = data.get("products", [])
 
+        def normalize_price(value):
+            if value is None:
+                return "NA"
+            if isinstance(value, (int, float)):
+                return value
+            value_str = str(value).strip()
+            if not value_str:
+                return "NA"
+            value_str = value_str.replace("$", "").replace(",", "")
+            return value_str or "NA"
+
         return [
             {
                 "name": product.get("name", "NA"),
-                "price": product.get("priceNumeric", "NA"),
+                "price": normalize_price(product.get("priceNumeric")),
                 "quantity": product.get("unitOfSize", {}).get("size", "NA"),
                 "unit": product.get("unitOfSize", {}).get("type", "NA"),
                 "unit_of_measure": product.get("unitOfMeasure", {}).get("type", "NA"),
