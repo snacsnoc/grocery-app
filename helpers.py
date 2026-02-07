@@ -20,9 +20,14 @@ def validate_request_form(request_form):
 
     query = request_form["query"]
     postal_code = request_form["postal_code"].replace(" ", "")
-    enable_safeway = True if "enable_safeway" in request_form else False
+    enabled_stores = {
+        "walmart": "enable_walmart" in request_form,
+        "saveon": "enable_saveon" in request_form,
+        "safeway": "enable_safeway" in request_form,
+        "pc": "enable_pc" in request_form,
+    }
 
-    return query, postal_code, enable_safeway
+    return query, postal_code, enabled_stores
 
 
 def get_geo_coords(postal_code):
@@ -71,11 +76,12 @@ def execute_search(functions):
 def process_search_results(
     results,
     query,
-    enable_safeway,
+    enabled_stores,
     parser,
     location,
     pc_store_name,
     saveon_store_name,
+    safeway_store_name,
     walmart_store_data,
     pc_store_data,
     saveon_store_data,
@@ -83,6 +89,13 @@ def process_search_results(
     latitude, longitude, postal_code, formatted_address = location
     pc_result = results.get("query_pc")
     saveon_result = results.get("query_saveon")
+    safeway_result = results.get("query_safeway")
+    walmart_result = results.get("query_walmart")
+
+    pc_enabled = enabled_stores.get("pc")
+    saveon_enabled = enabled_stores.get("saveon")
+    safeway_enabled = enabled_stores.get("safeway")
+    walmart_enabled = enabled_stores.get("walmart")
 
     # Initialize Walmart values to avoid UnboundLocalError
     # Walmart has a high chance of blocking "automated" requests
@@ -90,99 +103,105 @@ def process_search_results(
     walmart_store_name = "Unknown Store"
     walmart_warning = None
 
-    walmart_store_list = []
-    selected_walmart_store_id = None
-    if isinstance(walmart_store_data, list):
-        walmart_store_list = walmart_store_data
-    elif isinstance(walmart_store_data, dict):
-        walmart_store_list = walmart_store_data.get("payload", {}).get("stores", [])
-        selected_walmart_store_id = walmart_store_data.get("id")
-
-    if walmart_store_list:
-        walmart_store_entry = None
-        if selected_walmart_store_id not in (None, "", "Unavailable"):
-            selected_walmart_store_id = str(selected_walmart_store_id)
-            walmart_store_entry = next(
-                (
-                    store
-                    for store in walmart_store_list
-                    if str(store.get("nodeId", store.get("id")))
-                    == selected_walmart_store_id
-                ),
-                None,
-            )
-        if walmart_store_entry is None:
-            walmart_store_entry = walmart_store_list[0]
-        walmart_store_name = f"{walmart_store_entry.get('nodeId', walmart_store_entry.get('id', 'Unknown'))} - {walmart_store_entry.get('displayName', 'Unknown Store')}"
-
     pc_data = []
-    if isinstance(pc_result, dict):
+    if pc_enabled and isinstance(pc_result, dict):
         pc_data = parser.parse_pc_json_data(pc_result) or []
+    if not pc_enabled:
+        pc_store_name = "Disabled"
 
-    if isinstance(saveon_result, Exception) or saveon_result is None:
-        parsed_saveon_data = []
-    elif isinstance(saveon_result, dict) and "status" in saveon_result:
-        parsed_saveon_data = []
+    parsed_saveon_data = []
+    if saveon_enabled:
+        if not isinstance(saveon_result, Exception) and saveon_result is not None:
+            if not (isinstance(saveon_result, dict) and "status" in saveon_result):
+                parsed_saveon_data = (
+                    parser.parse_saveonfoods_json_data(saveon_result) or []
+                )
     else:
-        parsed_saveon_data = parser.parse_saveonfoods_json_data(saveon_result) or []
+        saveon_store_name = "Disabled"
 
-    if enable_safeway and "query_safeway" in results:
-        safeway_result = results["query_safeway"]
-        if isinstance(safeway_result, Exception):
-            safeway_data = []
-        elif (
-            isinstance(safeway_result, dict)
-            and safeway_result.get("entities") is not None
-        ):
+    safeway_data = None
+    if safeway_enabled and "query_safeway" in results:
+        if isinstance(safeway_result, dict):
             safeway_data = parser.parse_safeway_json_data(safeway_result) or []
         else:
             safeway_data = []
+
+    walmart_store_list = []
+    selected_walmart_store_id = None
+    if walmart_enabled:
+        if isinstance(walmart_store_data, list):
+            walmart_store_list = walmart_store_data
+        elif isinstance(walmart_store_data, dict):
+            walmart_store_list = walmart_store_data.get("payload", {}).get("stores", [])
+            selected_walmart_store_id = walmart_store_data.get("id")
+
+        if walmart_store_list:
+            walmart_store_entry = None
+            if selected_walmart_store_id not in (None, "", "Unavailable"):
+                selected_walmart_store_id = str(selected_walmart_store_id)
+                walmart_store_entry = next(
+                    (
+                        store
+                        for store in walmart_store_list
+                        if str(store.get("nodeId", store.get("id")))
+                        == selected_walmart_store_id
+                    ),
+                    None,
+                )
+            if walmart_store_entry is None:
+                walmart_store_entry = walmart_store_list[0]
+            node_id = walmart_store_entry.get(
+                "nodeId", walmart_store_entry.get("id", "Unknown")
+            )
+            display_name = walmart_store_entry.get("displayName", "Unknown Store")
+            walmart_store_name = f"{node_id} - {display_name}"
     else:
-        safeway_data = None
+        walmart_store_name = "Disabled"
 
     walmart_debug = None
-    if "query_walmart" in results:
-        f = results["query_walmart"]
-        if isinstance(f, Exception) or f is None:
-            pass
-        else:
-            if isinstance(f, dict) and f.get("_error"):
-                walmart_debug = {
-                    "status": f.get("_status"),
-                    "error": f.get("_error"),
-                    "body": f.get("_body"),
-                }
+    if walmart_enabled and "query_walmart" in results:
+        if isinstance(walmart_result, dict) and walmart_result.get("_error"):
+            walmart_debug = {
+                "status": walmart_result.get("_status"),
+                "error": walmart_result.get("_error"),
+                "body": walmart_result.get("_body"),
+            }
+        if not isinstance(walmart_result, Exception) and walmart_result is not None:
+            walmart_data_parsed = parser.parse_walmart_json_data(walmart_result) or []
 
-            walmart_data_parsed = parser.parse_walmart_json_data(f) or []
+    if walmart_debug is None and isinstance(walmart_store_data, dict):
+        if (
+            walmart_store_data.get("status")
+            or walmart_store_data.get("error")
+            or walmart_store_data.get("body")
+        ):
+            walmart_debug = {
+                "status": walmart_store_data.get("status"),
+                "error": walmart_store_data.get("error"),
+                "body": walmart_store_data.get("body"),
+            }
+
+    results_payload = {}
+    if saveon_enabled:
+        results_payload["saveon"] = parsed_saveon_data
+    if pc_enabled:
+        results_payload["pc"] = pc_data
+    if walmart_enabled:
+        results_payload["walmart"] = walmart_data_parsed
+    if safeway_enabled:
+        results_payload["safeway"] = safeway_data
 
     search_data = {
         "query": query,
         "store_name": {
             "pc": pc_store_name,
             "saveon": saveon_store_name,
+            "safeway": safeway_store_name,
             "walmart": walmart_store_name,
         },
         "walmart_warning": walmart_warning,
-        "walmart_debug": (
-            walmart_debug
-            or {
-                "status": walmart_store_data.get("status"),
-                "error": walmart_store_data.get("error"),
-                "body": walmart_store_data.get("body"),
-            }
-            if isinstance(walmart_store_data, dict)
-            and (
-                walmart_store_data.get("status")
-                or walmart_store_data.get("error")
-                or walmart_store_data.get("body")
-            )
-            else None
-        ),
-        "results": {
-            "saveon": parsed_saveon_data,
-            "pc": pc_data,
-            "walmart": walmart_data_parsed,
-        },
+        "walmart_debug": walmart_debug,
+        "results": results_payload,
         "coords": {
             "latitude": latitude,
             "longitude": longitude,
@@ -190,7 +209,7 @@ def process_search_results(
             "formatted_address": formatted_address,
         },
         "debug_mode": current_app.config["DEBUG"],
-        "enable_safeway": enable_safeway,
+        "enabled_stores": enabled_stores,
         "store_locations": {
             "pc": pc_store_data.get("ResultList", []),
             "saveon": saveon_store_data.get("items", []),
@@ -199,47 +218,102 @@ def process_search_results(
     }
     if not any(search_data["results"].values()):
         search_data["error"] = "No results"
-    if enable_safeway:
-        search_data["results"]["safeway"] = safeway_data
-        search_data["store_name"]["safeway"] = "Safeway - GTA-MTL"
+    if not safeway_enabled:
+        search_data["store_name"]["safeway"] = "Disabled"
 
     return search_data
 
 
-def set_store_ids(request_form, products_data, latitude, longitude, postal_code):
-    d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+def set_store_ids(
+    request_form, products_data, latitude, longitude, postal_code, enabled_stores=None
+):
+    enabled_stores = enabled_stores or {}
+    pc_enabled = enabled_stores.get("pc")
+    saveon_enabled = enabled_stores.get("saveon")
+    safeway_enabled = enabled_stores.get("safeway")
+    walmart_enabled = enabled_stores.get("walmart")
 
-    if "pc-store-select" in request_form:
-        pc_store_id = request_form["pc-store-select"]
-        pc_store_name = pc_store_id
-    else:
-        try:
-            value = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
-            # Set default store number (for whatever reason, store search can return an empty store ID)
-            pc_store_id = 1517 if value == "False" else value
-        except (KeyError, IndexError):
-            pc_store_id = d["ResultList"][0]["Attributes"][0][
-                "AttributeId"
-            ]  # or another default value if you prefer
-        pc_store_name = d["ResultList"][0]["Name"]
+    d = {"ResultList": []}
+    pc_store_id = None
+    pc_store_name = "Disabled"
+    if pc_enabled:
+        d = products_data.search_stores_pc(latitude, longitude, store_brand="superstore")
+        if "pc-store-select" in request_form:
+            pc_store_id = request_form["pc-store-select"]
+            pc_store_name = pc_store_id
+        else:
+            try:
+                value = d["ResultList"][0]["Attributes"][0]["AttributeValue"]
+                # Set default store number (for whatever reason, store search can return an empty store ID)
+                pc_store_id = 1517 if value == "False" else value
+            except (KeyError, IndexError):
+                pc_store_id = d["ResultList"][0]["Attributes"][0][
+                    "AttributeId"
+                ]  # or another default value if you prefer
+            pc_store_name = d["ResultList"][0]["Name"]
 
-    e = products_data.search_stores_saveon(latitude, longitude)
-    if "saveon-store-select" in request_form:
-        saveon_store_id = request_form["saveon-store-select"]
-        saveon_store_name = saveon_store_id
-    else:
-        saveon_store_id = e["items"][0]["retailerStoreId"] if e["items"] else False
-        saveon_store_name = e["items"][0]["name"] if e["items"] else False
+    e = {"items": []}
+    saveon_store_id = None
+    saveon_store_name = "Disabled"
+    if saveon_enabled:
+        e = products_data.search_stores_saveon(latitude, longitude)
+        if "saveon-store-select" in request_form:
+            saveon_store_id = request_form["saveon-store-select"]
+            saveon_store_name = saveon_store_id
+        else:
+            saveon_store_id = e["items"][0]["retailerStoreId"] if e["items"] else False
+            saveon_store_name = e["items"][0]["name"] if e["items"] else False
 
-    walmart_store_data = set_walmart_store_data(
-        request_form, products_data, postal_code, latitude, longitude
-    )
+    safeway_store_name = "Disabled"
+    if safeway_enabled:
+        safeway_store_search = products_data.search_stores_safeway(
+            latitude, longitude
+        )
+        safeway_hits = safeway_store_search.get("hits", [])
+        safeway_store_id = None
+        safeway_store_entry = None
+        selected_safeway_id = request_form.get("safeway-store-select")
+        if selected_safeway_id:
+            safeway_store_entry = next(
+                (
+                    store
+                    for store in safeway_hits
+                    if str(store.get("storeNumber")) == str(selected_safeway_id)
+                ),
+                None,
+            )
+        if safeway_store_entry is None and safeway_hits:
+            safeway_store_entry = safeway_hits[0]
+        if safeway_store_entry:
+            safeway_store_id = safeway_store_entry.get("storeNumber")
+            safeway_store_name = (
+                f"{safeway_store_id} - "
+                f"{safeway_store_entry.get('locationName', 'Safeway')}"
+            )
+        else:
+            safeway_store_name = "Unavailable"
+        if safeway_store_id:
+            products_data.set_store_safeway(safeway_store_id)
+
+    walmart_store_data = {
+        "id": None,
+        "name": "Disabled",
+        "payload": {"stores": []},
+        "status": None,
+        "error": None,
+        "body": None,
+    }
+    if walmart_enabled:
+        walmart_store_data = set_walmart_store_data(
+            request_form, products_data, postal_code, latitude, longitude
+        )
 
     return (
         pc_store_id,
         pc_store_name,
         saveon_store_id,
         saveon_store_name,
+        safeway_store_name,
         walmart_store_data,
         d,
         e,
