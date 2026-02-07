@@ -23,7 +23,7 @@ import re
 import random
 from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
-from px_utils import generate_pc
+from utils.px_utils import generate_pc
 
 
 class WalmartPXGenerator:

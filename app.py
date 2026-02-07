@@ -2,8 +2,8 @@ from flask import Flask, render_template, request, redirect, abort, url_for
 import os
 
 from config import Config
-from routes import configure_routes
-from error_handlers import configure_error_handlers
+from web.routes import configure_routes
+from web.error_handlers import configure_error_handlers
 
 app = Flask(__name__)
 app.config.from_object(Config)
