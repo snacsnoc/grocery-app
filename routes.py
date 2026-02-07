@@ -30,17 +30,17 @@ def configure_routes(app):
 
     @app.route("/search", methods=("GET", "POST"))
     def search():
-        query, postal_code, enable_safeway = validate_request_form(request.form)
+        query, postal_code, enabled_stores = validate_request_form(request.form)
 
         products_data = SupermarketAPI(query)
         parser = ProductDataParser
 
-        functions = [
-            products_data.query_saveon,
-            products_data.query_pc,
-        ]
-
-        if enable_safeway:
+        functions = []
+        if enabled_stores.get("saveon"):
+            functions.append(products_data.query_saveon)
+        if enabled_stores.get("pc"):
+            functions.append(products_data.query_pc)
+        if enabled_stores.get("safeway"):
             functions.append(products_data.query_safeway)
 
         longitude, latitude, formatted_address = get_geo_coords(postal_code)
@@ -49,13 +49,23 @@ def configure_routes(app):
             pc_store_name,
             saveon_store_id,
             saveon_store_name,
+            safeway_store_name,
             walmart_store_data,
             pc_store_data,
             saveon_store_data,
-        ) = set_store_ids(request.form, products_data, latitude, longitude, postal_code)
+        ) = set_store_ids(
+            request.form,
+            products_data,
+            latitude,
+            longitude,
+            postal_code,
+            enabled_stores,
+        )
 
-        products_data.set_store_saveon(saveon_store_id)
-        products_data.set_store_pc(pc_store_id)
+        if enabled_stores.get("saveon") and saveon_store_id:
+            products_data.set_store_saveon(saveon_store_id)
+        if enabled_stores.get("pc") and pc_store_id:
+            products_data.set_store_pc(pc_store_id)
 
         # Execute Walmart search only if "walmart-store-select" is in the request form
         # if "walmart-store-select" in request.form:
@@ -67,7 +77,11 @@ def configure_routes(app):
             walmart_store_id = walmart_store_data.get("id")
             walmart_stores = walmart_store_data.get("payload", {}).get("stores", [])
 
-        if walmart_stores and walmart_store_id not in (None, "", "Unavailable"):
+        if (
+            enabled_stores.get("walmart")
+            and walmart_stores
+            and walmart_store_id not in (None, "", "Unavailable")
+        ):
             products_data.set_store_walmart(walmart_store_id)
             functions.append(products_data.query_walmart)
 
@@ -76,11 +90,12 @@ def configure_routes(app):
         search_data = process_search_results(
             results,
             query,
-            enable_safeway,
+            enabled_stores,
             parser,
             location,
             pc_store_name,
             saveon_store_name,
+            safeway_store_name,
             walmart_store_data,
             pc_store_data,
             saveon_store_data,

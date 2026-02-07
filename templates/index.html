@@ -19,15 +19,35 @@
                 <div class="card">
                     <div class="card-body text-center d-flex flex-column align-items-center">
                         <form action="/search" method="post" id="search_form" onsubmit="return validateInput()">
-                            <div class="mb-3"><input class="form-control" type="text" id="postal_code"
-                                                     name="postal_code" placeholder="Postal code"
-                                                     style="padding-right: 20px;margin-right: 82px;"><input
-                                    class="form-control" type="search" id="query" name="query"
-                                    placeholder="Eggs, milk, bread..." required><input type="checkbox"
-                                                                                       id="enable_safeway"
-                                                                                       name="enable_safeway"
-                                                                                       checked><label
-                                    for="enable_safeway">Search Safeway</label></div>
+                            <div class="mb-3">
+                                <input class="form-control" type="text" id="postal_code"
+                                       name="postal_code" placeholder="Postal code"
+                                       style="padding-right: 20px;margin-right: 82px;">
+                                <input class="form-control" type="search" id="query" name="query"
+                                       placeholder="Eggs, milk, bread...">
+                                <div class="mt-2 text-start">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enable_walmart"
+                                               name="enable_walmart" checked>
+                                        <label class="form-check-label" for="enable_walmart">Walmart</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enable_saveon"
+                                               name="enable_saveon" checked>
+                                        <label class="form-check-label" for="enable_saveon">Save-On-Foods</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enable_safeway"
+                                               name="enable_safeway" checked>
+                                        <label class="form-check-label" for="enable_safeway">Safeway</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enable_pc"
+                                               name="enable_pc" checked>
+                                        <label class="form-check-label" for="enable_pc">President's Choice</label>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="mb-3"></div>
                             <div class="mb-3">
                                 <button id="search_button" class="btn btn-primary shadow d-block w-100" type="submit">
@@ -42,49 +62,36 @@
 </section>
 
 <script>
-    function validateInput() {
-        var postalCode = document.getElementById("postal_code")
-            .value.toUpperCase();
-        var postalCodeRegex = /^[ABCEGHJKLMNPRSTVXY]{1}\d{1}[A-Z]{1} *\d{1}[A-Z]{1}\d{1}$/;
+(function () {
+    const form = document.getElementById("search_form"),
+          btn = document.getElementById("search_button"),
+          postal = document.getElementById("postal_code"),
+          query = document.getElementById("query");
 
-        if (!postalCodeRegex.test(postalCode)) {
-            //alert("Invalid postal code format. Please enter a valid Canadian postal code.");
-            return false;
-        }
-        if (!document.getElementById("query")
-            .value.trim()) {
-            // alert("Search query is empty");
-            return false;
-        }
+    const isValid = () => {
+        const pc = postal.value.trim().toUpperCase();
+        const okPC = /^[ABCEGHJKLMNPRSTVXY]\d[A-Z] ?\d[A-Z]\d$/.test(pc);
+        const okQ = query.value.trim().length > 0;
+        if (okPC) postal.value = pc; 
+        return okPC && okQ;
+    };
 
-        return true;
+    const sync = () => btn.disabled = !isValid();
 
-    }
+    [postal, query].forEach(el => el.addEventListener("input", sync));
 
-
-    const theButton = document.querySelector(".btn-primary");
-    const searchButton = document.getElementById("search_button");
-
-    theButton.addEventListener("click", function (event) {
-        theButton.classList.add("button--loading");
-        searchButton.disabled = true;
-        if (!validateInput()) {
-
-            event.preventDefault();
-            theButton.classList.remove("button--loading");
-            searchButton.disabled = false;
-            alert("Invalid input, please check your query and postal code");
-            console.log("validation failed");
-
-
-        } else {
-            //Submit form
-            document.getElementById("search_form").submit();
-
-        }
-
-
+    form.addEventListener("submit", (e) => {
+        if (!isValid()) return e.preventDefault();
+        btn.classList.add("button--loading");
     });
+
+    window.addEventListener("pageshow", () => {
+        btn.classList.remove("button--loading");
+        sync();
+    });
+
+    sync();
+})();
 </script>
 <style>
     .button {
