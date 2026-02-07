@@ -13,12 +13,18 @@
         </p>
 
         <ul>
+            {% if result_data['enabled_stores']['pc'] %}
             <li>Presidents choice: {{ result_data['store_name']['pc']}}</li>
+            {% endif %}
+            {% if result_data['enabled_stores']['saveon'] %}
             <li>Save-On-Foods: {{ result_data['store_name']['saveon']}}</li>
-            {% if result_data['enable_safeway'] %}
+            {% endif %}
+            {% if result_data['enabled_stores']['safeway'] %}
             <li>Safeway: {{ result_data['store_name']['safeway']}}</li>
             {% endif %}
+            {% if result_data['enabled_stores']['walmart'] %}
             <li>Walmart: {{ result_data['store_name']['walmart']}}</li>
+            {% endif %}
         </ul>
         {% if result_data.get('walmart_warning') %}
         <div class="alert alert-warning" role="alert">
@@ -69,13 +75,32 @@
                     {% for store, results in result_data['results'].items() %}
             {% for data in results %}
             {% if data['unit'] and data['name'] and data['image'] %}
+            {% set price_str = data['price']|string %}
+            {% if price_str in ("None", "", "NA") %}
+            {% set price_display = "NA" %}
+            {% elif price_str.startswith("$") %}
+            {% set price_display = price_str %}
+            {% else %}
+            {% set price_display = "$" ~ price_str %}
+            {% endif %}
+            {% set unit_str = data['unit']|string %}
+            {% set quantity_str = data['quantity']|string %}
+            {% if quantity_str in ("None", "", "NA") %}
+            {% set quantity_display = quantity_str %}
+            {% elif unit_str in ("None", "", "NA") %}
+            {% set quantity_display = quantity_str %}
+            {% elif quantity_str.replace('.', '', 1).isdigit() %}
+            {% set quantity_display = quantity_str ~ " " ~ unit_str %}
+            {% else %}
+            {% set quantity_display = quantity_str %}
+            {% endif %}
             {
                 "Store"
             :
                 "{{ store }}",
                     "Price"
             :
-                "{{ data['price'] }}",
+                "{{ price_display }}",
                     "Unit"
             :
                 "{{ data['unit'] }}",
@@ -84,7 +109,7 @@
                 "{{ data['unit_price'] }}",
                     "Quantity"
             :
-                "{{ data['quantity'] }}",
+                "{{ quantity_display }}",
                     "Name"
             :
                 "{{ data['name'] }}",
@@ -181,6 +206,20 @@
                 <input class="form-control" type="hidden" id="search" name="postal_code"
                        value="{{ result_data['coords']['postal_code'] }}">
 
+                {% if result_data['enabled_stores']['walmart'] %}
+                <input type="hidden" name="enable_walmart" value="1">
+                {% endif %}
+                {% if result_data['enabled_stores']['pc'] %}
+                <input type="hidden" name="enable_pc" value="1">
+                {% endif %}
+                {% if result_data['enabled_stores']['saveon'] %}
+                <input type="hidden" name="enable_saveon" value="1">
+                {% endif %}
+                {% if result_data['enabled_stores']['safeway'] %}
+                <input type="hidden" name="enable_safeway" value="1">
+                {% endif %}
+
+                {% if result_data['enabled_stores']['walmart'] %}
                 <label for="store1">Select a Walmart store:</label>
                 <select class="form-control" id="walmart-store-select" name="walmart-store-select">
                     {% for store_name in result_data['store_locations']['walmart'] %}
@@ -189,7 +228,9 @@
                     </option>
                     {% endfor %}
                 </select>
+                {% endif %}
             </div>
+            {% if result_data['enabled_stores']['pc'] %}
             <div class="form-group">
                 <label for="store2">
                     Select a Superstore/Independent/Shoppers Drug Mart/Loblaws store:
@@ -202,6 +243,8 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
+            {% if result_data['enabled_stores']['saveon'] %}
             <div class="form-group">
                 <label for="store3">
                     Select a Save-On-Foods store:
@@ -214,6 +257,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
             <button type="submit" class="btn btn-default">Submit</button>
         </form>
     </div>

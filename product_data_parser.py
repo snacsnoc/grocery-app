@@ -4,6 +4,68 @@ import re
 
 class ProductDataParser:
     @staticmethod
+    def normalize_unit(unit):
+        if unit is None:
+            return "NA"
+        unit_str = str(unit).strip().lower()
+        if not unit_str:
+            return "NA"
+        mapping = {
+            "g": "g",
+            "gram": "g",
+            "grams": "g",
+            "kg": "kg",
+            "kilogram": "kg",
+            "kilograms": "kg",
+            "ml": "ml",
+            "milliliter": "ml",
+            "milliliters": "ml",
+            "l": "l",
+            "liter": "l",
+            "liters": "l",
+            "litre": "l",
+            "litres": "l",
+            "ea": "ea",
+            "each": "ea",
+            "count": "ea",
+            "ct": "ea",
+            "unit": "ea",
+            "units": "ea",
+            "lb": "lb",
+            "lbs": "lb",
+            "pound": "lb",
+            "pounds": "lb",
+            "oz": "oz",
+            "ounce": "oz",
+            "ounces": "oz",
+        }
+        return mapping.get(unit_str, unit_str)
+
+    @staticmethod
+    def normalize_quantity_unit(quantity, unit):
+        unit_norm = ProductDataParser.normalize_unit(unit)
+        if unit_norm in ("kg", "l"):
+            try:
+                quantity_value = float(quantity)
+            except (TypeError, ValueError):
+                return quantity, unit_norm
+            if unit_norm == "kg":
+                return quantity_value * 1000, "g"
+            return quantity_value * 1000, "ml"
+        return quantity, unit_norm
+
+    @staticmethod
+    def _extract_quantity_unit_from_text(text):
+        if not text:
+            return None, None
+        match = re.search(r"(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b", text, re.IGNORECASE)
+        if not match:
+            return None, None
+        quantity = match.group(1)
+        unit = match.group(2)
+        return ProductDataParser.normalize_quantity_unit(quantity, unit)
+
+    @staticmethod
     def get_image(
         product,
         default_image="https://upload.wikimedia.org/wikipedia/commons/6/67/056-crying-face.svg",
@@ -83,38 +145,36 @@ class ProductDataParser:
 
             item_amount_value = product_info.get("itemAmountValue")
             item_amount_unit = product_info.get("itemAmountUnit")
-            weight_in_grams = None
-            if item_amount_value is not None and item_amount_unit:
-                try:
-                    amount_value = float(item_amount_value)
-                    if str(item_amount_unit).upper() == "G":
-                        weight_in_grams = int(amount_value)
-                    elif str(item_amount_unit).upper() == "KG":
-                        weight_in_grams = int(amount_value * 1000)
-                except (TypeError, ValueError):
-                    weight_in_grams = None
+            unit_raw = item_amount_unit or product_info.get("uom")
+            quantity = item_amount_value
 
-            if weight_in_grams is None:
-                weight_str = product_info.get("weight", "")
-                weight_match = re.search(
-                    r"(\d+(?:\.\d+)?)\s*(KG|G)",
-                    weight_str,
-                    re.IGNORECASE,
+            fallback_quantity, fallback_unit = ProductDataParser._extract_quantity_unit_from_text(
+                product_info.get("weight", "")
+            )
+            if fallback_quantity is None:
+                fallback_quantity, fallback_unit = (
+                    ProductDataParser._extract_quantity_unit_from_text(name)
                 )
-                if weight_match:
-                    value = float(weight_match.group(1))
-                    unit = weight_match.group(2).upper()
-                    weight_in_grams = int(value * 1000) if unit == "KG" else int(value)
+            if quantity is None and fallback_quantity is not None:
+                quantity = fallback_quantity
+                unit_raw = unit_raw or fallback_unit
+            elif unit_raw is None and fallback_unit is not None:
+                unit_raw = fallback_unit
 
-            if weight_in_grams is None:
-                name_match = re.search(r"(\d+)\s*g", name, re.IGNORECASE)
-                weight_in_grams = int(name_match.group(1)) if name_match else None
+            quantity, unit = ProductDataParser.normalize_quantity_unit(
+                quantity, unit_raw
+            )
 
-            if weight_in_grams and price_float is not None:
-                unit_price = (price_float / weight_in_grams) * 100
-                unit_price_string = f"${unit_price:.2f}/100g"
-            else:
-                unit_price_string = "NA"
+            unit_price_string = "NA"
+            if price_float is not None:
+                try:
+                    quantity_value = float(quantity)
+                except (TypeError, ValueError):
+                    quantity_value = None
+                if quantity_value and unit in ("g", "ml"):
+                    unit_price = (price_float / quantity_value) * 100
+                    suffix = "100g" if unit == "g" else "100ml"
+                    unit_price_string = f"${unit_price:.2f}/{suffix}"
 
             images = product_info.get("images", [])
             image = (
@@ -127,9 +187,9 @@ class ProductDataParser:
                 "name": name,
                 "price": price_string,
                 "image": image,
-                "quantity": weight_in_grams or item_amount_value,
+                "quantity": quantity,
                 "unit_price": unit_price_string,
-                "unit": item_amount_unit or product_info.get("uom", "NA"),
+                "unit": unit,
             }
             result.append(product_info_map)
 
@@ -150,30 +210,40 @@ class ProductDataParser:
             value_str = value_str.replace("$", "").replace(",", "")
             return value_str or "NA"
 
-        return [
-            {
-                "name": product.get("name", "NA"),
-                "price": normalize_price(product.get("priceNumeric")),
-                "quantity": product.get("unitOfSize", {}).get("size", "NA"),
-                "unit": product.get("unitOfSize", {}).get("type", "NA"),
-                "unit_of_measure": product.get("unitOfMeasure", {}).get("type", "NA"),
-                "unit_price": (
-                    product.get("pricePerUnit", "NA")
-                    if product.get("pricePerUnit")
-                    else f"${(product.get('priceNumeric', 0) / max(product.get('unitOfMeasure', {}).get('size', 1), 1)):.2f}/100"
-                ),
-                "image": product.get("image", {}).get(
-                    "default", ProductDataParser.get_image({})
-                ),
-                "made_in_canada": product.get("attributes", {}).get(
-                    "made in Canada", False
-                ),
-                "product_of_canada": product.get("attributes", {}).get(
-                    "product of Canada", False
-                ),
-            }
-            for product in product_data
-        ]
+        results = []
+        for product in product_data:
+            unit_of_size = product.get("unitOfSize", {}) or {}
+            unit_of_measure = product.get("unitOfMeasure", {}) or {}
+            raw_quantity = unit_of_size.get("size")
+            raw_unit = unit_of_size.get("type") or unit_of_measure.get("type")
+            quantity, unit = ProductDataParser.normalize_quantity_unit(
+                raw_quantity, raw_unit
+            )
+
+            results.append(
+                {
+                    "name": product.get("name", "NA"),
+                    "price": normalize_price(product.get("priceNumeric")),
+                    "quantity": quantity,
+                    "unit": unit,
+                    "unit_of_measure": unit_of_measure.get("type", "NA"),
+                    "unit_price": (
+                        product.get("pricePerUnit", "NA")
+                        if product.get("pricePerUnit")
+                        else f"${(product.get('priceNumeric', 0) / max(unit_of_measure.get('size', 1), 1)):.2f}/100"
+                    ),
+                    "image": product.get("image", {}).get(
+                        "default", ProductDataParser.get_image({})
+                    ),
+                    "made_in_canada": product.get("attributes", {}).get(
+                        "made in Canada", False
+                    ),
+                    "product_of_canada": product.get("attributes", {}).get(
+                        "product of Canada", False
+                    ),
+                }
+            )
+        return results
 
     @staticmethod
     def parse_walmart_json_data(data):
@@ -204,18 +274,25 @@ class ProductDataParser:
                 price = 0
                 price_string = "NA"
 
-            # Extracting weight in grams from the product name
-            weight_match = re.search(
-                r"(\d+)\s*g", product_code.get("name", ""), re.IGNORECASE
+            quantity, unit = ProductDataParser._extract_quantity_unit_from_text(
+                product_name
             )
-            # Default to 100g if not found
-            weight_in_grams = int(weight_match.group(1)) if weight_match else 100
+            if unit is None:
+                unit = product_code.get("salesUnitType", "NA")
+            if quantity is None:
+                quantity = product_code.get("weightIncrement")
+            quantity, unit = ProductDataParser.normalize_quantity_unit(quantity, unit)
 
-            # Calculating unit price
-            unit_price = (price / weight_in_grams) * 100 if weight_in_grams else "NA"
-            unit_price_string = (
-                f"${unit_price:.2f}/100g" if unit_price != "NA" else "NA"
-            )
+            unit_price_string = "NA"
+            if price and quantity is not None and unit in ("g", "ml"):
+                try:
+                    quantity_value = float(quantity)
+                except (TypeError, ValueError):
+                    quantity_value = None
+                if quantity_value:
+                    unit_price = (price / quantity_value) * 100
+                    suffix = "100g" if unit == "g" else "100ml"
+                    unit_price_string = f"${unit_price:.2f}/{suffix}"
 
             image_info = product_code.get("imageInfo", {})
             thumbnail_url = image_info.get("thumbnailUrl")
@@ -231,8 +308,8 @@ class ProductDataParser:
             product_info_map = {
                 "name": product_name,
                 "price": price_string,
-                "quantity": weight_in_grams,
-                "unit": product_code.get("salesUnitType", "NA"),
+                "quantity": quantity,
+                "unit": unit,
                 "unit_price": unit_price_string,
                 "image": image,
             }
