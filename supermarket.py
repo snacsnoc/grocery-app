@@ -19,7 +19,6 @@
 #
 
 import os
-import sys
 import time
 import random
 import uuid
@@ -27,7 +26,7 @@ import requests
 import tls_client
 import json
 import re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote_plus
 from walmart_px import WalmartPXGenerator
 
 
@@ -35,7 +34,9 @@ class SupermarketAPI:
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
     WALMART_IOS_USER_AGENT = "WMT1H-CA/26.1 iOS/26.2"
     WALMART_IOS_PLATFORM_VERSION = "26.1.0"
+    WALMART_IOS_OS_VERSION = "26.2"
     WALMART_IOS_DEVICE_MODEL = "iPhone18,1"
+    WALMART_PX_HELLO = "AApSCwUBUVAeVVIEAh4CAlUDHgtRBQoeAQAEAgIDUQQHAFAK"
 
     def __init__(self, search_query):
         self.search_query = search_query
@@ -50,7 +51,7 @@ class SupermarketAPI:
         px_ft = int(os.getenv("PX_FT", "221"))
         px_collector_uri = os.getenv(
             "PX_COLLECTOR_URI",
-            "https://collector-PXnp9B16Cq.px-cloud.net/api/v2/collector",
+            f"https://collector-{px_app_id.lower()}.px-cloud.net/api/v2/collector",
         )
         px_host = os.getenv("PX_HOST", "https://www.walmart.ca")
         px_sid = os.getenv(
@@ -78,41 +79,20 @@ class SupermarketAPI:
         self.walmart_postal_code = None
         self.walmart_latlng = None
         self.walmart_device_id = os.getenv("WALMART_DEVICE_ID", str(uuid.uuid4()))
+        self.walmart_session_primed = False
         self.safeway_store_id = None
 
-    def _walmart_proxy(self):
-        proxy_url = os.getenv("WALMART_PROXY_URL") or os.getenv("WALMART_PROXY")
-        if not proxy_url:
-            return None
-        # Ensure proxy URL has a scheme for both tls-client and requests
-        if not proxy_url.startswith("http"):
-            proxy_url = f"http://{proxy_url}"
-        return proxy_url
-
-    def _walmart_proxies(self):
-        proxy_url = self._walmart_proxy()
-        if not proxy_url:
-            return None
-        return {"http": proxy_url, "https": proxy_url}
-
-    def _walmart_timeout(self):
-        try:
-            return float(os.getenv("WALMART_TIMEOUT", "12"))
-        except ValueError:
-            return 12.0
-
-    def _walmart_timeout_seconds(self):
-        # tls-client expects an int for timeoutSeconds
-        try:
-            return int(float(os.getenv("WALMART_TIMEOUT", "12")))
-        except ValueError:
-            return 12
-
     def _apply_px_headers(self, headers):
-        if self.px_vid:
-            headers["X-Px-Vid"] = self.px_vid
-        if self.px_uuid:
-            headers["X-Px-Uuid"] = self.px_uuid
+        px_vid = self.px_vid or str(uuid.uuid4())
+        px_uuid = self.px_uuid or str(uuid.uuid4())
+        headers["X-Px-Vid"] = px_vid
+        headers["X-Px-Uuid"] = px_uuid
+        if self.px_cookie:
+            headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
+        if not self.px_vid:
+            self.px_vid = px_vid
+        if not self.px_uuid:
+            self.px_uuid = px_uuid
 
     def _apply_px_cookies(self, cookies):
         if not self.px_cookie:
@@ -124,7 +104,7 @@ class SupermarketAPI:
     def _tls_request_kwargs(self, *, headers, cookies=None, params=None, data=None):
         kwargs = {
             "headers": headers,
-            "timeout_seconds": self._walmart_timeout_seconds(),
+            "timeout_seconds": 12,
         }
         if cookies is not None:
             kwargs["cookies"] = cookies
@@ -132,10 +112,80 @@ class SupermarketAPI:
             kwargs["params"] = params
         if data is not None:
             kwargs["data"] = data
-        proxy_url = self._walmart_proxy()
-        if proxy_url:
-            kwargs["proxy"] = proxy_url
         return kwargs
+
+    def _prime_walmart_session(self):
+        if self.walmart_session_primed:
+            return
+        try:
+            response = self.session.get(
+                self.walmart_api_url + "/",
+                **self._tls_request_kwargs(
+                    headers={
+                        "User-Agent": self.WALMART_IOS_USER_AGENT,
+                        "Accept": "*/*",
+                        "Accept-Language": "en-CA",
+                    }
+                ),
+            )
+            self.walmart_session_primed = True
+            print(
+                f"[DEBUG] Primed Walmart session status={response.status_code} "
+                f"cookies={len(self.session.cookies)}"
+            )
+        except Exception as e:
+            print(f"[DEBUG] Walmart session priming failed: {e}")
+
+    def _walmart_trace_headers(self, view_key):
+        trace_id = uuid.uuid4().hex
+        span_id = uuid.uuid4().hex[:16]
+        tpid = f"00-{trace_id}-{span_id}-00"
+        return {
+            "Traceparent": tpid,
+            "Baggage": (
+                "deviceType=ios,"
+                f"{view_key}={str(uuid.uuid4()).upper()},"
+                f"requestTs={int(time.time() * 1000)},"
+                f"tpid={tpid},"
+                "trafficType=release"
+            ),
+        }
+
+    def _walmart_base_location_cookies(self):
+        cookies = {
+            "wmt.c": "0",
+            "hasLocData": "1",
+        }
+        if self.walmart_postal_code:
+            cookies["walmart.nearestPostalCode"] = self.walmart_postal_code
+        if self.walmart_latlng:
+            cookies["walmart.nearestLatLng"] = self.walmart_latlng
+        return cookies
+
+    def _parse_json_or_error(self, response):
+        if response is None:
+            return {
+                "_error": "request_not_sent",
+                "_status": None,
+                "_body": "",
+            }
+        if response.status_code != 200:
+            return {
+                "_error": "http_status",
+                "_status": response.status_code,
+                "_body": (response.text or "")[:1000],
+            }
+        try:
+            data = response.json()
+            if isinstance(data, dict):
+                data["_status"] = response.status_code
+            return data
+        except ValueError:
+            return {
+                "_error": "invalid_json",
+                "_status": response.status_code,
+                "_body": (response.text or "")[:1000],
+            }
 
     def _extract_px3_from_do(self, response_do):
         if not response_do:
@@ -389,9 +439,8 @@ class SupermarketAPI:
             + "&ReturnGeocode=True&SearchTypeOverride=1&StartIndex=0"
         )
 
-        self.r = requests.get(bullseye_api_url)
-
-        return self.r.json()
+        response = requests.get(bullseye_api_url)
+        return response.json()
 
     def set_store_pc(self, store_number):
         self.pc_store_number = store_number
@@ -453,9 +502,9 @@ class SupermarketAPI:
                 },
             }
         )
-        self.r = requests.post(pc_api_url, headers=pc_headers, data=pc_data_query)
-        if self.r.status_code == 200:
-            return self.r.json()
+        response = requests.post(pc_api_url, headers=pc_headers, data=pc_data_query)
+        if response.status_code == 200:
+            return response.json()
         else:
             return None
 
@@ -681,11 +730,16 @@ class SupermarketAPI:
             "id": fetch_near_by_nodes_hash,
             "variables": json.dumps(variables, separators=(",", ":")),
         }
+        session_wm_vid = str(uuid.uuid4()).upper()
+        session_wm_sid = (
+            getattr(self.px_generator, "sid", None) or str(uuid.uuid4())
+        ).upper()
 
         walmart_headers = {
             "User-Agent": self.WALMART_IOS_USER_AGENT,
             "Accept": "*/*",
             "Accept-Language": "en-CA",
+            "Accept-Encoding": "gzip, deflate, br",
             "tenant-id": "qxjed8",
             "x-o-platform": "ios",
             "x-o-platform-version": self.WALMART_IOS_PLATFORM_VERSION,
@@ -699,22 +753,28 @@ class SupermarketAPI:
             "X-Apollo-Operation-Name": "FetchNearByNodes",
             "X-Apollo-Operation-Id": fetch_near_by_nodes_hash,
             "X-Wm-Client-Name": "glass",
-            "X-Wm-Vid": self.px_vid,
-            "X-Wm-Sid": self.px_generator.sid,
+            "X-Wm-Vid": session_wm_vid,
+            "X-Wm-Sid": session_wm_sid,
             "X-Enable-Server-Timing": "1",
             "X-Latency-Trace": "1",
             "Wm_mp": "true",
+            "X-Px-Os": "iOS",
+            "X-Px-Os-Version": self.WALMART_IOS_OS_VERSION,
+            "X-Px-Mobile-Sdk-Version": "3.2.6",
+            "X-Px-Device-Fp": "08FFEC59-CEAD-42F7-AB0E-BD0B954CFF56",
+            "X-Px-Device-Model": self.WALMART_IOS_DEVICE_MODEL,
+            "X-Px-Hello": self.WALMART_PX_HELLO,
+            "X-Px-Authorization": "1",
+            "Priority": "u=3",
+            "X-O-Fuzzy-Install-Date": "1737400000000",
         }
         self._apply_px_headers(walmart_headers)
         if self.px_cookie:
             walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
 
-        walmart_cookies = {
-            "walmart.nearestPostalCode": postal_code,
-            "wmt.c": "0",
-        }
-        if latitude is not None and longitude is not None:
-            walmart_cookies["walmart.nearestLatLng"] = f"{latitude},{longitude}"
+        walmart_cookies = self._walmart_base_location_cookies()
+
+        self._prime_walmart_session()
 
         # Add a human-like delay before the first store lookup
         self._walmart_request_delay()
@@ -727,8 +787,20 @@ class SupermarketAPI:
                 self._apply_px_cookies(walmart_cookies)
                 self._apply_px_headers(walmart_headers)
 
+            walmart_headers.update(self._walmart_trace_headers("renderViewId"))
+
             walmart_headers.update(self._walmart_header_overrides())
             walmart_cookies.update(self._walmart_cookie_overrides())
+            print(
+                "[DEBUG] Store identity auth={} wm_vid={} px_vid={} px_uuid={} cookie_px3={} cookie_pxvid={}".format(
+                    str(walmart_headers.get("X-Px-Authorization", "n/a"))[:24],
+                    str(walmart_headers.get("X-Wm-Vid", "n/a"))[:12],
+                    str(walmart_headers.get("X-Px-Vid", "n/a"))[:12],
+                    str(walmart_headers.get("X-Px-Uuid", "n/a"))[:12],
+                    "yes" if walmart_cookies.get("_px3") else "no",
+                    str(walmart_cookies.get("_pxvid", "n/a"))[:12],
+                )
+            )
 
             response = self.session.get(
                 self.walmart_api_url + walmart_api_search_path,
@@ -754,20 +826,29 @@ class SupermarketAPI:
                     f"Walmart API returned 412 (Attempt {attempt+1}/3). Refreshing PX token..."
                 )
                 if self._refresh_walmart_px(challenge=challenge):
-                    # walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
                     self._apply_px_cookies(walmart_cookies)
+                    self._apply_px_headers(walmart_headers)
+                    if self.px_cookie:
+                        walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
+                    retry_delay = random.uniform(0.8, 2.0)
+                    print(
+                        f"[DEBUG] Store 412 retry delay after PX refresh: {retry_delay:.2f}s"
+                    )
+                    time.sleep(retry_delay)
                     continue
                 print("[DEBUG] PX refresh failed; returning 412 response.")
 
             # Handle rate limiting
             if response.status_code == 429:
                 print(
-                    f"Walmart API returned 429 (Attempt {attempt+1}/3). Refreshing PX token..."
+                    f"Walmart API returned 429 (Attempt {attempt+1}/3). Backing off before retry..."
                 )
-                if self._refresh_walmart_px():
-                    # walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
+                if not self.px_cookie and self._refresh_walmart_px():
                     self._apply_px_cookies(walmart_cookies)
-                delay = random.uniform(3, 7) * (attempt + 1)
+                    self._apply_px_headers(walmart_headers)
+                    if self.px_cookie:
+                        walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
+                delay = random.uniform(4, 9) * (attempt + 1)
                 print(f"[DEBUG] Retrying in {delay:.2f} seconds...")
                 time.sleep(delay)
                 continue
@@ -779,24 +860,7 @@ class SupermarketAPI:
             # If not 412/429 or refresh failed, break
             break
 
-        if response.status_code != 200:
-            return {
-                "_error": "http_status",
-                "_status": response.status_code,
-                "_body": (response.text or "")[:1000],
-            }
-
-        try:
-            data = response.json()
-            if isinstance(data, dict):
-                data["_status"] = response.status_code
-            return data
-        except ValueError:
-            return {
-                "_error": "invalid_json",
-                "_status": response.status_code,
-                "_body": (response.text or "")[:1000],
-            }
+        return self._parse_json_or_error(response)
 
     # Set Walmart store by ID
     def set_store_walmart(self, store_id):
@@ -805,24 +869,72 @@ class SupermarketAPI:
     # Query Walmart search by store ID
     def query_walmart(self):
         self._walmart_request_delay()
-        # Using GET endpoint and persisted hash from iOS intercept
-        persisted_hash = (
-            "abe71b798bb572e81f953ec17132900f84218712d206b57b0e9d4d32e619e8f6"
+        self._prime_walmart_session()
+
+        persisted_hash = os.getenv(
+            "WALMART_GET_PRESO_HASH",
+            "557b40dad92e91e7d4c2a2a1f98162945db8b9a33b2f66fd7d9feafd0d6770c6",
+        )
+        product_ios_user_agent = os.getenv(
+            "WALMART_PRODUCT_IOS_USER_AGENT", "WMT1H-CA/26.3.1 iOS/26.2.1"
+        )
+        product_ios_platform_version = os.getenv(
+            "WALMART_PRODUCT_IOS_PLATFORM_VERSION", "26.3.1"
+        )
+        product_ios_os_version = os.getenv("WALMART_PRODUCT_IOS_OS_VERSION", "26.2.1")
+        product_px_hello = os.getenv(
+            "WALMART_PRODUCT_PX_HELLO",
+            "UAQCAgQLBAEeAwQBCh4CAlUCHlILVgMeVQJSVVdVVVUDV1AD",
+        )
+
+        additional_query_params = (
+            "{isGenAiEnabled=false,isMoreOptionsTileEnabled=true,"
+            "isDynamicFacetsEnabled=true,isModuleArrayReq=false}"
+        )
+        additional_query_params_obj = {
+            "categoryNupsEnabled": False,
+            "isDynamicFacetsEnabled": True,
+            "isGenAiEnabled": False,
+            "isLMPBrowsePage": False,
+            "isModuleArrayReq": False,
+            "isMoreOptionsTileEnabled": True,
+            "isWicCacheAvailable": False,
+            "neuralSearchSeeAll": False,
+        }
+
+        session_wm_vid = str(uuid.uuid4()).upper()
+        session_wm_sid = (
+            getattr(self.px_generator, "sid", None) or str(uuid.uuid4())
+        ).upper()
+        store_id = str(getattr(self, "walmart_store_number", "") or "")
+
+        request_url = (
+            f"{self.walmart_api_url}/orchestra/snb/graphql/getPreso/"
+            f"{persisted_hash}/search"
         )
 
         variables = {
-            "aQP": {
-                "isDynamicFacetsEnabled": True,
-                "isGenAiEnabled": False,
-                "isMoreOptionsTileEnabled": True,
-            },
+            "adsParams": {"fungibilityEnabled": False},
+            "aQP": dict(additional_query_params_obj),
             "contentLayoutVersion": "v1",
             "dGv": False,
-            "fFp": {"dynamicFitmentEnabled": True, "powerSportEnabled": True},
+            "enableQuickViewBottomSheet": False,
+            "enableSlaBadgeV2": False,
+            "fE": False,
+            "fetchSBAV1": False,
+            "fFp": {
+                "dynamicFitmentEnabled": True,
+                "extendedAttributesEnabled": True,
+                "fuelTypeEnabled": True,
+                "optInSearchFitmentEnabled": True,
+                "powerSportEnabled": True,
+            },
             "fSP": {
+                "additionalQueryParams": dict(additional_query_params_obj),
                 "channel": "Mobile",
                 "displayGuidedNav": False,
                 "facet": "fulfillment_method:Pickup",
+                "id": "",
                 "page": 1,
                 "pageType": "MobileSearchPage",
                 "prg": "ios",
@@ -831,117 +943,155 @@ class SupermarketAPI:
                 "tenant": "CA_GLASS",
             },
             "ft": "fulfillment_method:Pickup",
+            "fungibilityEnabled": False,
             "iCLS": True,
+            "includeGroupsV2": False,
+            "isAddToListMenuIconEnabled": False,
             "p13n": {
                 "page": 1,
                 "userClientInfo": {"callType": "CLIENT", "deviceType": "IOS"},
                 "userReqInfo": {
+                    "enableSlaBadgeV2": False,
                     "isMoreOptionsTileEnabled": True,
                     "refererContext": {"query": self.search_query},
-                    "vid": "62E7E52A-8C33-4E14-810B-46225509222E",
+                    "vid": session_wm_vid,
                 },
             },
             "pg": 1,
+            "postProcessingVersion": 1,
             "pT": "MobileSearchPage",
             "qy": self.search_query,
+            "rLS": True,
+            "shouldQueryRedirectUrl": False,
+            "sp": True,
+            "tempo": {},
             "ten": "CA_GLASS",
+            "tp": False,
         }
 
-        params = {
+        request_params = {
             "query": self.search_query,
             "facet": "fulfillment_method:Pickup",
             "page": "1",
             "spelling": "true",
             "displayGuidedNav": "false",
-            "additionalQueryParams": '{"isGenAiEnabled":false,"isMoreOptionsTileEnabled":true,"isDynamicFacetsEnabled":true,"isModuleArrayReq":false}',
+            "additionalQueryParams": additional_query_params,
             "id": persisted_hash,
-            "variables": json.dumps(variables),
+            "variables": json.dumps(variables, separators=(",", ":")),
         }
+        walmart_cookies = self._walmart_base_location_cookies()
+        if store_id:
+            walmart_cookies["deliveryCatchment"] = store_id
+            walmart_cookies["defaultNearestStoreId"] = store_id
+            walmart_cookies["assortmentStoreId"] = store_id
 
-        walmart_headers = {
-            "User-Agent": self.USER_AGENT,
-            "Accept": "application/json",
+        base_headers = {
+            "User-Agent": product_ios_user_agent,
+            "Accept": "*/*",
             "Accept-Language": "en-CA",
-            "x-o-platform": "rweb",
-            "x-o-gql-query": "query getPreso",
+            "Accept-Encoding": "gzip, deflate, br",
+            "X-O-Platform": "ios",
+            "X-O-Platform-Version": product_ios_platform_version,
+            "X-O-Device": self.WALMART_IOS_DEVICE_MODEL,
+            "X-O-Device-Id": self.walmart_device_id,
+            "X-O-Segment": "oaoh",
+            "X-O-Tp-Phase": "tp5",
+            "X-O-Bu": "WALMART-CA",
+            "X-O-Mart": "B2C",
+            "X-O-Gql-Query": "query getPreso",
             "X-Apollo-Operation-Name": "getPreso",
+            "X-Apollo-Operation-Id": persisted_hash,
             "X-Wm-Client-Name": "glass",
-            "x-o-bu": "WALMART-CA",
-            "x-o-mart": "B2C",
-            "tenant-id": "qxjed8",
+            "X-Wm-Vid": session_wm_vid,
+            "X-Wm-Sid": session_wm_sid,
+            "X-Enable-Server-Timing": "1",
+            "X-Latency-Trace": "1",
+            "Wm_mp": "true",
+            "X-Px-Os": "iOS",
+            "X-Px-Os-Version": product_ios_os_version,
+            "X-Px-Mobile-Sdk-Version": "3.2.6",
+            "X-Px-Device-Fp": "08FFEC59-CEAD-42F7-AB0E-BD0B954CFF56",
+            "X-Px-Device-Model": self.WALMART_IOS_DEVICE_MODEL,
+            "Tenant-Id": "qxjed8",
+            "X-Px-Hello": product_px_hello,
+            "Wm_page_url": "/en/search?q=" + quote_plus(str(self.search_query)),
+            "Caching-Operation-Name": "MobileSearchPage",
+            "Priority": "u=3",
+            "Device_profile_ref_id": str(uuid.uuid4()).upper(),
+            "X-O-Fuzzy-Install-Date": "1737400000000",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
         }
-        self._apply_px_headers(walmart_headers)
 
-        walmart_cookies = {
-            "deliveryCatchment": self.walmart_store_number,
-            "defaultNearestStoreId": self.walmart_store_number,
-            "wmt.c": "0",
-        }
-        if self.walmart_postal_code:
-            walmart_cookies["walmart.nearestPostalCode"] = self.walmart_postal_code
-        if self.walmart_latlng:
-            walmart_cookies["walmart.nearestLatLng"] = self.walmart_latlng
-        if self.px_cookie:
-            walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
-            self._apply_px_cookies(walmart_cookies)
-            self._apply_px_headers(walmart_headers)
-
-        walmart_headers.update(self._walmart_header_overrides())
-        walmart_cookies.update(self._walmart_cookie_overrides())
-
+        last_challenge = None
         walmart_request = None
-        for attempt in range(2):
-            print(f"[DEBUG] Walmart Product Query Attempt {attempt+1}")
+        # Keep the successful strategy ordering: two auth1 attempts, then auth3 fallback.
+        for attempt in range(5):
+            if attempt == 2 and not self.px_cookie:
+                print("[DEBUG] No PX cookie for auth3; refreshing token...")
+                self._refresh_walmart_px(challenge=last_challenge)
 
-            # Prepare request for logging
-            request_url = f"{self.walmart_api_url}/orchestra/snb/graphql/getPreso/{persisted_hash}/search"
+            use_auth3 = attempt >= 2 and bool(self.px_cookie)
+            headers = dict(base_headers)
+            cookies = dict(walmart_cookies)
+            headers["Device_profile_ref_id"] = str(uuid.uuid4()).upper()
+            headers.update(self._walmart_trace_headers("pageViewId"))
+            if use_auth3:
+                self._apply_px_cookies(cookies)
+                self._apply_px_headers(headers)
+            else:
+                headers["X-Px-Authorization"] = "1"
+                headers["X-Px-Vid"] = str(uuid.uuid4())
+                headers["X-Px-Uuid"] = str(uuid.uuid4())
 
-            # Enhanced Debug Logging
-            print(f"[DEBUG] Request URL: {request_url}")
-            print(f"[DEBUG] Request Params: {json.dumps(params, indent=2)}")
-            print(f"[DEBUG] Request Headers: {json.dumps(walmart_headers, indent=2)}")
+            headers.update(self._walmart_header_overrides())
+            cookies.update(self._walmart_cookie_overrides())
 
-            # Anonymize PX cookie for logging
-            logged_cookies = walmart_cookies.copy()
-            if "_px3" in logged_cookies:
-                logged_cookies["_px3"] = logged_cookies["_px3"][:20] + "..."
-            print(f"[DEBUG] Request Cookies: {json.dumps(logged_cookies, indent=2)}")
-
+            strategy = "auth3" if use_auth3 else "auth1"
+            print(
+                "[DEBUG] Walmart Product Query Attempt {} strategy={} auth={} cookie_px3={}".format(
+                    attempt + 1,
+                    strategy,
+                    str(headers.get("X-Px-Authorization", "n/a"))[:24],
+                    "yes" if cookies.get("_px3") else "no",
+                )
+            )
             walmart_request = self.session.get(
                 request_url,
                 **self._tls_request_kwargs(
-                    headers=walmart_headers,
-                    cookies=walmart_cookies,
-                    params=params,
+                    headers=headers,
+                    cookies=cookies,
+                    params=request_params,
                 ),
             )
+            print(
+                "[DEBUG] Product {} status={} cookie_count={}".format(
+                    strategy, walmart_request.status_code, len(self.session.cookies)
+                )
+            )
 
-            print(f"[DEBUG] Product Query Response: {walmart_request.status_code}")
+            if walmart_request.status_code == 200:
+                return self._parse_json_or_error(walmart_request)
 
             if walmart_request.status_code == 412:
-                print(
-                    f"Walmart API returned 412 (Attempt {attempt+1}/2). Refreshing PX token..."
-                )
-                if self._refresh_walmart_px():
-                    walmart_headers["X-Px-Authorization"] = f"3:{self.px_cookie}"
+                last_challenge = self._extract_px_challenge(walmart_request)
+                if use_auth3:
+                    print(
+                        f"Walmart API returned 412 (product auth3 attempt {attempt-1}/3)."
+                    )
+                    if self._refresh_walmart_px(challenge=last_challenge):
+                        continue
+                else:
+                    print(
+                        f"Walmart API returned 412 (product auth1 attempt {attempt+1}/2)."
+                    )
                     continue
+            elif walmart_request.status_code == 429:
+                delay = random.uniform(1.0, 3.0) * (attempt + 1)
+                print(f"[DEBUG] Product {strategy} retry delay: {delay:.2f}s")
+                time.sleep(delay)
+                continue
             break
 
-        if walmart_request.status_code != 200:
-            return {
-                "_error": "http_status",
-                "_status": walmart_request.status_code,
-                "_body": (walmart_request.text or "")[:1000],
-            }
-
-        try:
-            data = walmart_request.json()
-            if isinstance(data, dict):
-                data["_status"] = walmart_request.status_code
-            return data
-        except ValueError:
-            return {
-                "_error": "invalid_json",
-                "_status": walmart_request.status_code,
-                "_body": (walmart_request.text or "")[:1000],
-            }
+        return self._parse_json_or_error(walmart_request)
