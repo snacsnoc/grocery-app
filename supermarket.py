@@ -870,7 +870,6 @@ class SupermarketAPI:
     def query_walmart(self):
         self._walmart_request_delay()
         self._prime_walmart_session()
-
         persisted_hash = os.getenv(
             "WALMART_GET_PRESO_HASH",
             "557b40dad92e91e7d4c2a2a1f98162945db8b9a33b2f66fd7d9feafd0d6770c6",
@@ -1019,9 +1018,6 @@ class SupermarketAPI:
             "Priority": "u=3",
             "Device_profile_ref_id": str(uuid.uuid4()).upper(),
             "X-O-Fuzzy-Install-Date": "1737400000000",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
         }
 
         last_challenge = None
